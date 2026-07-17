@@ -141,3 +141,10 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# Cloudflare Wrangler
+.wrangler/
+.dev.vars
+
+# FLUX raw renders (site/assets/illustrations holds the compressed ones)
+scratch/

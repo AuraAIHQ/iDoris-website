@@ -1,0 +1,12 @@
+{
+  "name": "idoris-website",
+  "private": true,
+  "description": "iDoris.ai — AuraAI 官网（组织大脑 iDoris）",
+  "scripts": {
+    "dev": "wrangler pages dev site",
+    "deploy": "wrangler pages deploy site --project-name=idoris-website"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}
