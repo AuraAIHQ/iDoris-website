@@ -195,7 +195,9 @@ nav.top a.link:hover { color: var(--paper); }
 
 /* Fraunces carries no CJK glyphs, so Chinese headings silently fall back to a
    CJK serif with a much larger apparent size. Rein the display sizes in. */
-:root[data-lang="zh"] .hero h1 { max-width: 11em; font-size: clamp(38px, 5.4vw, 66px); }
+/* 新标题最长一行「科幻片中许诺过的智脑，」有 10 个汉字，11em 装不下会把
+   「智脑」拆行。放宽到 14em 并把字号收一档，让整行连着排。 */
+:root[data-lang="zh"] .hero h1 { max-width: 14em; font-size: clamp(34px, 4.8vw, 56px); }
 :root[data-lang="en"] .hero h1 { max-width: 14ch; }
 
 /* ---------- hero ---------- */
