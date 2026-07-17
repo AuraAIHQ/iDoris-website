@@ -66,7 +66,7 @@ AuraAI 是 AI 给的建议——一个烂大街的名字。等我们去注册域
 | | 是什么 | 在哪 |
 |---|---|---|
 | 🍜 **清迈 Meetup** | 线下 AI builder 定期沟通，每周一次 | [Chiang Mai Weekly AI Study Group](https://app.sola.day/event/detail/19717) · Zuzalu Library Event Space, Building F, 4Seas Nimman |
-| ✍️ **Blog / 公众号** | 文章集合，写清楚我们在想什么、踩了什么坑 | 筹备中 |
+| ✍️ **Blog / 公众号** | 🍄 Mycelium Protocol Blog —— AI · Web3 · 数字公共物品。写清楚我们在想什么、踩了什么坑 | [blog.mushroom.cv](https://blog.mushroom.cv) |
 | 🎬 **视频号** | 手把手上手 AI。真实的实践，聚焦真问题——不是教程流水线 | 筹建中 |
 
 线下那场每周日 18:00（GMT+7）在清迈，也开线上。
