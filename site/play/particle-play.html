@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en" data-lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Particle Play · iDoris playground</title>
+<style>
+  html,body{margin:0;height:100%;background:#F4F1EC;overflow:hidden;font-family:ui-monospace,Menlo,monospace;-webkit-user-select:none;user-select:none;touch-action:none}
+  #c{display:block;width:100%;height:100%;cursor:crosshair}
+  .ui{position:fixed;left:12px;top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;z-index:2}
+  .ui button{font:inherit;font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:7px 12px;border:1px solid #d9d3c8;background:#fff;color:#333;border-radius:6px;cursor:pointer}
+  .ui button:hover{border-color:#FF5233;color:#FF5233}
+  .ui .swatch{width:20px;height:20px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #d9d3c8;cursor:pointer;padding:0}
+  .hint{position:fixed;left:12px;bottom:12px;font-size:11px;color:#8a8578;z-index:2;letter-spacing:.03em}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="ui">
+  <button id="clear">Clear</button>
+  <button id="mode">Mode: flow</button>
+  <button class="swatch" data-c="#111111" style="background:#111"></button>
+  <button class="swatch" data-c="#FF5233" style="background:#FF5233"></button>
+  <button class="swatch" data-c="#49C7E6" style="background:#49C7E6"></button>
+</div>
+<div class="hint">拖动 / 触摸来画 —— 粒子会自己流动、绽放、消退。Drag to draw; particles flow and fade.</div>
+<script>
+(function(){
+  var cv=document.getElementById('c'), ctx=cv.getContext('2d'), DPR=Math.min(2,window.devicePixelRatio||1);
+  var W,H; function resize(){ W=cv.width=innerWidth*DPR; H=cv.height=innerHeight*DPR; ctx.fillStyle='#F4F1EC'; ctx.fillRect(0,0,W,H);} resize();
+  addEventListener('resize',resize);
+  var parts=[], color='#111111', mode='flow', SYM=6, t=0;
+  var colors=['#111111','#FF5233','#49C7E6','#E8A03D'];
+  function rnd(a,b){ return a+(b-a)*(( (t=(t*9301+49297)%233280)/233280 )); } // 无 Math.random 依赖也行，但这里用内置
+  function R(a,b){ return a+Math.random()*(b-a); }
+  function emit(x,y,vx,vy){
+    var speed=Math.hypot(vx,vy);
+    var n=2+Math.floor(Math.min(speed*0.4,6));
+    for(var i=0;i<n;i++){
+      parts.push({x:x*DPR,y:y*DPR,vx:(vx*0.3+R(-1,1))*DPR,vy:(vy*0.3+R(-1,1))*DPR,life:1,size:R(1.2,3.4)*DPR,c:color});
+    }
+    if(parts.length>4000) parts.splice(0,parts.length-4000);
+  }
+  var cx=function(){return W/2;}, cy=function(){return H/2;};
+  function step(){
+    // 轻微拖尾：半透明覆盖一层米白
+    ctx.fillStyle='rgba(244,241,236,0.06)'; ctx.fillRect(0,0,W,H);
+    for(var i=parts.length-1;i>=0;i--){
+      var p=parts[i];
+      if(mode==='flow'){ var a=Math.sin((p.y*0.004))+Math.cos((p.x*0.004)); p.vx+=Math.cos(a)*0.15*DPR; p.vy+=Math.sin(a)*0.15*DPR; }
+      p.vx*=0.96; p.vy*=0.96; p.x+=p.vx; p.y+=p.vy; p.life-=0.012;
+      if(p.life<=0){ parts.splice(i,1); continue; }
+      ctx.globalAlpha=Math.max(0,p.life);
+      ctx.fillStyle=p.c;
+      if(mode==='kaleido'){
+        var dx=p.x-cx(), dy=p.y-cy();
+        for(var s=0;s<SYM;s++){
+          var ang=s*(Math.PI*2/SYM), cos=Math.cos(ang), sin=Math.sin(ang);
+          var rx=dx*cos-dy*sin, ry=dx*sin+dy*cos;
+          ctx.fillRect(cx()+rx, cy()+ry, p.size, p.size);
+          ctx.fillRect(cx()+ (rx*cos+ry*sin), cy()+(-rx*sin+ry*cos), p.size, p.size);
+        }
+      } else {
+        ctx.fillRect(p.x,p.y,p.size,p.size);
+      }
+    }
+    ctx.globalAlpha=1;
+    requestAnimationFrame(step);
+  }
+  step();
+  var last=null;
+  function pos(e){ var t=e.touches?e.touches[0]:e; return {x:t.clientX,y:t.clientY}; }
+  function down(e){ last=pos(e); e.preventDefault(); }
+  function move(e){ if(!last) return; var p=pos(e); emit(p.x,p.y,p.x-last.x,p.y-last.y); last=p; e.preventDefault(); }
+  function up(){ last=null; }
+  cv.addEventListener('mousedown',down); addEventListener('mousemove',move); addEventListener('mouseup',up);
+  cv.addEventListener('touchstart',down,{passive:false}); cv.addEventListener('touchmove',move,{passive:false}); addEventListener('touchend',up);
+  document.getElementById('clear').onclick=function(){ parts=[]; ctx.fillStyle='#F4F1EC'; ctx.fillRect(0,0,W,H); };
+  document.getElementById('mode').onclick=function(e){ mode=(mode==='flow')?'kaleido':'flow'; e.target.textContent='Mode: '+mode; ctx.fillStyle='#F4F1EC'; ctx.fillRect(0,0,W,H); parts=[]; };
+  document.querySelectorAll('.swatch').forEach(function(b){ b.onclick=function(){ color=b.getAttribute('data-c'); }; });
+})();
+</script>
+</body>
+</html>

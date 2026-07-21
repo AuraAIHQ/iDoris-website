@@ -43,8 +43,7 @@
         "th": "วาดมังกรเบี้ยว ๆ แล้ว AI เปลี่ยนมันเป็นภาพประกอบที่สวยงาม"
       },
       "playground": {
-        "url": "https://huggingface.co/spaces/myn0908/S2I-Artwork-Sketch-to-Image-Diffusion",
-        "embed": "https://myn0908-s2i-artwork-sketch-to-image-diffusion.hf.space"
+        "url": "https://huggingface.co/spaces/myn0908/S2I-Artwork-Sketch-to-Image-Diffusion"
       },
       "source": {
         "repo": "https://github.com/replicate/scribble-diffusion"
@@ -79,7 +78,8 @@
       "slug": "particle-play",
       "title": {
         "zh": "让图形动起来",
-        "en": "Make shapes come alive"
+        "en": "Make shapes come alive",
+        "th": "ทำให้รูปทรงเคลื่อนไหว"
       },
       "category": "animation",
       "categoryLabel": "🎬 做个动画",
@@ -87,10 +87,14 @@
       "ageBands": "初中→大学",
       "experiments": 3,
       "summary": {
-        "zh": "用几行创意代码，让粒子、线条随机地动起来——第一次感受“代码即画笔”。"
+        "zh": "用几行创意代码，让粒子、线条随机地动起来——第一次感受“代码即画笔”。",
+        "en": "A few lines of creative code and particles come alive — feel 'code as paintbrush.'",
+        "th": "โค้ดสร้างสรรค์ไม่กี่บรรทัด อนุภาคก็มีชีวิต — สัมผัส 'โค้ดคือพู่กัน'"
       },
       "playground": {
-        "url": "https://editor.p5js.org"
+        "url": "https://editor.p5js.org",
+        "embed": "/play/particle-play",
+        "selfHosted": true
       },
       "source": {
         "repo": "https://github.com/processing/p5.js"
