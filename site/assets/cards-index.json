@@ -26,7 +26,7 @@
         "repo": "https://github.com/AlaGrine/RAG_chatabot_with_Langchain"
       },
       "companion": "doris-search",
-      "status": "draft"
+      "status": "review"
     },
     {
       "slug": "doodle-dragon",
@@ -132,7 +132,7 @@
         "repo": "https://huggingface.co/spaces/multimodalart/stable-video-diffusion"
       },
       "companion": "doris-surprise",
-      "status": "draft"
+      "status": "review"
     },
     {
       "slug": "quick-draw-guess",
@@ -184,7 +184,7 @@
         "repo": "https://github.com/vercel/ai"
       },
       "companion": "doris-smile",
-      "status": "draft"
+      "status": "review"
     },
     {
       "slug": "sentence-to-game",
@@ -236,7 +236,7 @@
         "repo": "https://github.com/tensorflow/tfjs-examples"
       },
       "companion": "cherry-smile",
-      "status": "draft"
+      "status": "review"
     },
     {
       "slug": "teach-cat-or-dog",
@@ -262,7 +262,7 @@
         "repo": "https://github.com/googlecreativelab/teachablemachine-community"
       },
       "companion": "doris-think",
-      "status": "draft"
+      "status": "review"
     },
     {
       "slug": "ten-minute-website",
@@ -314,7 +314,7 @@
         "repo": "https://github.com/ml5js/ml5-library"
       },
       "companion": "cherry-run",
-      "status": "draft"
+      "status": "review"
     }
   ]
 }
