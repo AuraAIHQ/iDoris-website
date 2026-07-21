@@ -1,0 +1,4 @@
+# 本地开发用的 Stripe 密钥（复制为 .dev.vars，勿提交 —— .dev.vars 已在 .gitignore）
+# 线上用 `wrangler pages secret put` 设置，见 docs/stripe-setup.md
+STRIPE_SECRET_KEY="sk_test_xxx"
+STRIPE_WEBHOOK_SECRET="whsec_xxx"

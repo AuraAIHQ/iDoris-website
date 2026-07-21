@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en" data-lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title data-zh="购买 AI 体验卡 — iDoris" data-th="ซื้อบัตรทดลอง AI — iDoris">Buy AI Experience Cards — iDoris</title>
+<meta name="description" content="Buy an AI experience card — a specific AI scenario to try, tokens to run it, and a collectible Doris character." data-zh="购买一张 AI 体验卡：一个具体的 AI 场景、够跑几次实验的 token，外加一个可收藏的 Doris 形象。" data-th="ซื้อบัตรทดลอง AI — สถานการณ์ AI ที่ลองได้จริง โทเคนสำหรับรัน และตัว Doris สะสม">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%2309090C'/%3E%3Ccircle cx='16' cy='16' r='6' fill='%23FF3B30'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="/assets/style.css">
+<style>
+  .status{display:none;margin:0 0 28px;padding:16px 22px;border-radius:10px;border:1px solid var(--line);font-size:14px}
+  .status.show{display:block}
+  .status.ok{border-left:3px solid var(--violet);background:rgba(157,140,255,.08);color:var(--paper)}
+  .status.no{border-left:3px solid var(--red);background:var(--red-dim);color:var(--paper)}
+  .plans{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:8px}
+  .plan{border:1px solid var(--line);background:var(--ink-2);border-radius:14px;padding:26px 24px;display:flex;flex-direction:column;gap:8px}
+  .plan.feature{border-color:rgba(255,59,48,.5);background:linear-gradient(180deg,rgba(255,59,48,.06),var(--ink-2))}
+  .plan .pt{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+  .plan .amt{font-family:var(--display),var(--han);font-weight:500;font-size:38px;color:var(--paper);line-height:1.1}
+  .plan .amt small{font-size:13px;color:var(--paper-dim);font-family:var(--mono)}
+  .plan .cny{font-size:12px;color:var(--muted);font-family:var(--mono)}
+  .plan ul{list-style:none;padding:0;margin:6px 0 14px}
+  .plan li{font-size:13px;color:var(--paper-dim);padding:5px 0 5px 18px;position:relative;line-height:1.6}
+  .plan li::before{content:"—";position:absolute;left:0;color:var(--red);opacity:.6}
+  .plan button{margin-top:auto;font-family:var(--mono);font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;padding:13px 18px;border:1px solid var(--red);background:var(--red);color:var(--ink);font-weight:600;cursor:pointer;transition:all .2s;border-radius:2px}
+  .plan button:hover:not(:disabled){background:transparent;color:var(--red)}
+  .plan button:disabled{opacity:.55;cursor:progress}
+  .paynote{margin-top:28px;font-size:13px;color:var(--muted);max-width:70ch}
+  .paynote b{color:var(--paper-dim)}
+  @media(max-width:860px){.plans{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<nav class="top">
+  <div class="wrap">
+    <a class="brand" href="/"><span class="dot"></span>iDORIS / AURAAI</a>
+    <div class="nav-scroll">
+      <a class="link" href="/#directions" data-zh="三个方向" data-th="สามทิศทาง">Three Directions</a>
+      <a class="link" href="/friends" data-zh="我们的 IP" data-th="ตัวละครของเรา">Doris &amp; Cherry</a>
+      <a class="link" href="/join" data-zh="招聘" data-th="ร่วมงาน">We're hiring</a>
+      <a class="link" href="https://github.com/AuraAIHQ">GitHub ↗</a>
+    </div>
+    <div class="lang" role="group" aria-label="Language">
+      <button class="lang-btn" data-lang="en" aria-pressed="true">EN</button>
+      <button class="lang-btn" data-lang="zh" aria-pressed="false">中文</button>
+      <button class="lang-btn" data-lang="th" aria-pressed="false">ไทย</button>
+    </div>
+  </div>
+</nav>
+
+<main>
+<header class="hero">
+  <div class="wrap">
+    <div class="hero-copy" style="max-width:760px">
+      <div class="kicker rise d1" data-zh="AI 体验卡 · 购买" data-th="บัตรทดลอง AI · ซื้อ">AI Experience Cards · Buy</div>
+      <h1 class="rise d2" data-zh="买一张卡，迈出<span class=&quot;glow&quot;>第一步。</span>" data-th="ซื้อหนึ่งใบ ก้าว<span class=&quot;glow&quot;>แรกของคุณ</span>">Buy a card, take the <span class="glow">first step.</span></h1>
+      <p class="lede rise d3" data-zh="一张 AI 体验卡 = 一个具体的 AI 场景 + 够做 3–4 个实验的 token + 一个可收藏的 Doris 形象。点开就玩，玩完能学会怎么自己做。" data-th="บัตรทดลอง AI หนึ่งใบ = สถานการณ์ AI จริง + โทเคนพอทำ 3–4 การทดลอง + ตัว Doris สะสม เล่นได้ทันที แล้วเรียนรู้วิธีทำเอง">One AI experience card = a real AI scenario + enough tokens for 3–4 experiments + a collectible Doris character. Play now, then learn to build it yourself.</p>
+
+      <div id="status" class="status rise d3" role="status"></div>
+
+      <div class="plans rise d4">
+        <div class="plan">
+          <div class="pt" data-zh="单张" data-th="ใบเดียว">Single</div>
+          <div class="amt">$1.50 <small>USD</small></div>
+          <div class="cny" data-zh="≈ ¥10 / ฿49" data-th="≈ ¥10 / ฿49">≈ ¥10 / ฿49</div>
+          <ul>
+            <li data-zh="1 张体验卡 + Doris 形象" data-th="1 ใบ + ตัว Doris">1 card + Doris character</li>
+            <li data-zh="token 够做 3–4 个实验" data-th="โทเคนพอ 3–4 การทดลอง">Tokens for 3–4 experiments</li>
+            <li data-zh="可复现仓库全公开" data-th="โค้ดตัวอย่างเปิดทั้งหมด">Open reproducible repo</li>
+          </ul>
+          <button data-sku="card" data-zh="购买单张" data-th="ซื้อ 1 ใบ">Buy single</button>
+        </div>
+        <div class="plan feature">
+          <div class="pt" data-zh="5 张包 · 最受欢迎" data-th="แพ็ก 5 · ยอดนิยม">5-pack · Popular</div>
+          <div class="amt">$6.50 <small>USD</small></div>
+          <div class="cny" data-zh="≈ ¥45 / ฿229 · 省一张" data-th="≈ ¥45 / ฿229">≈ ¥45 / ฿229 · save one</div>
+          <ul>
+            <li data-zh="5 张卡，多试几个场景" data-th="5 ใบ ลองหลายสถานการณ์">5 cards, more scenarios</li>
+            <li data-zh="适合一次玩个够" data-th="เหมาะกับการลองรวดเดียว">Best for a real session</li>
+            <li data-zh="集卡换数字徽章" data-th="สะสมแลกตราดิจิทัล">Collect for digital badges</li>
+          </ul>
+          <button data-sku="pack5" data-zh="购买 5 张" data-th="ซื้อแพ็ก 5">Buy 5-pack</button>
+        </div>
+        <div class="plan">
+          <div class="pt" data-zh="10 张包 · 班级/家庭" data-th="แพ็ก 10 · ห้องเรียน">10-pack · Class</div>
+          <div class="amt">$12 <small>USD</small></div>
+          <div class="cny" data-zh="≈ ¥85 / ฿429" data-th="≈ ¥85 / ฿429">≈ ¥85 / ฿429</div>
+          <ul>
+            <li data-zh="10 张卡，班级/家庭首选" data-th="10 ใบ สำหรับห้องเรียน/ครอบครัว">10 cards for class/family</li>
+            <li data-zh="覆盖多个学科场景" data-th="ครอบคลุมหลายวิชา">Covers many subjects</li>
+            <li data-zh="老师可要班级用量看板" data-th="ครูขอแดชบอร์ดการใช้งานได้">Teacher usage dashboard</li>
+          </ul>
+          <button data-sku="pack10" data-zh="购买 10 张" data-th="ซื้อแพ็ก 10">Buy 10-pack</button>
+        </div>
+      </div>
+
+      <p class="paynote rise d4" data-zh="支付由 <b>Stripe</b> 安全处理，支持信用卡等。<b>社区积分购买</b>即将开放。企业/机构批量采购请邮件 jhfnetboy@gmail.com。" data-th="ชำระเงินอย่างปลอดภัยผ่าน <b>Stripe</b> · เร็ว ๆ นี้รองรับ <b>แต้มชุมชน</b> · องค์กรติดต่อ jhfnetboy@gmail.com">Payments are handled securely by <b>Stripe</b>. Paying with <b>community points</b> is coming soon. For bulk/institution orders, email jhfnetboy@gmail.com.</p>
+    </div>
+  </div>
+</header>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div>
+      <div style="color:var(--paper);font-weight:500;margin-bottom:6px">iDoris.ai</div>
+      <div data-zh="AuraAI · 组织大脑 · 数字公共物品 · Apache 2.0" data-th="AuraAI · สมององค์กร · สาธารณประโยชน์ดิจิทัล · Apache 2.0">AuraAI · The Organizational Brain · Digital Public Goods · Apache 2.0</div>
+    </div>
+    <div class="links">
+      <a href="/" data-zh="返回首页" data-th="กลับหน้าแรก">Home</a>
+      <a href="/friends" data-zh="Doris &amp; Cherry" data-th="Doris &amp; Cherry">Doris &amp; Cherry</a>
+      <a href="https://github.com/AuraAIHQ">GitHub</a>
+    </div>
+  </div>
+</footer>
+
+<script src="/assets/i18n-v2.js"></script>
+<script>
+  (function () {
+    var box = document.getElementById('status');
+    var params = new URLSearchParams(location.search);
+    var st = params.get('status');
+    function msgs(key){
+      var lang = document.documentElement.getAttribute('data-lang') || 'en';
+      var m = {
+        success:{en:'✅ Payment received — thank you! Your card and tokens are on the way.',zh:'✅ 支付成功，谢谢！你的卡和 token 正在发放。',th:'✅ ชำระเงินสำเร็จ ขอบคุณ! บัตรและโทเคนกำลังมา'},
+        cancel:{en:'Payment canceled — no charge was made. You can try again anytime.',zh:'支付已取消，未扣款。随时可以再试。',th:'ยกเลิกการชำระเงิน — ไม่มีการเรียกเก็บ ลองใหม่ได้ทุกเมื่อ'}
+      };
+      return (m[key]&&(m[key][lang]||m[key].en))||'';
+    }
+    if (st === 'success' || st === 'cancel') {
+      box.textContent = msgs(st);
+      box.className = 'status show ' + (st === 'success' ? 'ok' : 'no');
+    }
+
+    function fail(text){ box.textContent = text; box.className = 'status show no'; box.scrollIntoView({behavior:'smooth',block:'center'}); }
+
+    document.querySelectorAll('.plan button[data-sku]').forEach(function (btn) {
+      btn.addEventListener('click', async function () {
+        var sku = btn.getAttribute('data-sku');
+        var original = btn.textContent;
+        btn.disabled = true; btn.textContent = '…';
+        try {
+          var r = await fetch('/api/checkout', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ sku: sku, quantity: 1 })
+          });
+          var data = await r.json();
+          if (r.ok && data.url) { location.href = data.url; return; }
+          if (r.status === 503) {
+            var lang = document.documentElement.getAttribute('data-lang') || 'en';
+            fail(lang==='zh'?'支付即将开通（Stripe 尚未配置）。请稍后再来，或邮件 jhfnetboy@gmail.com。':lang==='th'?'ระบบชำระเงินกำลังเปิด (ยังไม่ได้ตั้งค่า Stripe) โปรดลองใหม่ภายหลัง':'Payments are being switched on (Stripe not configured yet). Please check back soon.');
+          } else {
+            fail((data && data.message) || 'Something went wrong. Please try again.');
+          }
+        } catch (e) {
+          fail('Network error — please try again.');
+        } finally {
+          btn.disabled = false; btn.textContent = original;
+        }
+      });
+    });
+  })();
+</script>
+</body>
+</html>
