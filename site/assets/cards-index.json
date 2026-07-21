@@ -6,7 +6,8 @@
       "slug": "chat-with-your-pdf",
       "title": {
         "zh": "和你的资料对话",
-        "en": "Chat with your own docs"
+        "en": "Chat with your own docs",
+        "th": "คุยกับเอกสารของคุณ"
       },
       "category": "chatbot",
       "categoryLabel": "💬 造个聊天助手",
@@ -14,7 +15,9 @@
       "ageBands": "大专→大学 / 老师",
       "experiments": 3,
       "summary": {
-        "zh": "上传 PDF/笔记，做一个基于你自己资料回答的问答机器人。理解 RAG。"
+        "zh": "上传 PDF/笔记，做一个基于你自己资料回答的问答机器人。理解 RAG。",
+        "en": "Upload your PDFs/notes and get a bot that answers from your own material. Meet RAG.",
+        "th": "อัปโหลด PDF/โน้ตของคุณ แล้วได้บอตที่ตอบจากเอกสารของคุณเอง รู้จักกับ RAG"
       },
       "playground": {
         "url": "https://aistudio.google.com"
