@@ -253,7 +253,7 @@
         "repo": "https://github.com/e2b-dev/fragments"
       },
       "companion": "doris-smile",
-      "status": "draft"
+      "status": "review"
     },
     {
       "slug": "webcam-controller",
