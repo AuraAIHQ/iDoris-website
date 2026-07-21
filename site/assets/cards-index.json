@@ -29,7 +29,8 @@
       "slug": "doodle-dragon",
       "title": {
         "zh": "涂鸦变神龙",
-        "en": "Doodle to dragon"
+        "en": "Doodle to dragon",
+        "th": "วาดมังกรจากลายเส้น"
       },
       "category": "drawing",
       "categoryLabel": "🎨 涂鸦成画",
@@ -37,10 +38,13 @@
       "ageBands": "小学→高中",
       "experiments": 4,
       "summary": {
-        "zh": "画一条歪歪扭扭的龙，AI 把它补成一张精致插画。理解 sketch→image。"
+        "zh": "画一条歪歪扭扭的龙，AI 把它补成一张精致插画。理解 sketch→image。",
+        "en": "Draw a wobbly little dragon and AI turns it into a polished illustration.",
+        "th": "วาดมังกรเบี้ยว ๆ แล้ว AI เปลี่ยนมันเป็นภาพประกอบที่สวยงาม"
       },
       "playground": {
-        "url": "https://huggingface.co/spaces/myn0908/S2I-Artwork-Sketch-to-Image-Diffusion"
+        "url": "https://huggingface.co/spaces/myn0908/S2I-Artwork-Sketch-to-Image-Diffusion",
+        "embed": "https://myn0908-s2i-artwork-sketch-to-image-diffusion.hf.space"
       },
       "source": {
         "repo": "https://github.com/replicate/scribble-diffusion"
@@ -138,7 +142,7 @@
         "repo": "https://github.com/googlecreativelab/quickdraw-dataset"
       },
       "companion": "cherry-tilt",
-      "status": "draft"
+      "status": "review"
     },
     {
       "slug": "roleplay-tutor",

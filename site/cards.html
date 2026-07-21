@@ -12,7 +12,7 @@
   .cathead{font-family:var(--display),var(--han);font-weight:500;font-size:22px;margin:0 0 4px}
   .catsub{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-bottom:18px}
   .cardgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
-  .xcard{border:1px solid var(--line);background:var(--ink-2);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;transition:border-color .2s,transform .2s}
+  .xcard{border:1px solid var(--line);background:var(--ink-2);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;transition:border-color .2s,transform .2s;text-decoration:none;color:inherit}
   .xcard:hover{border-color:rgba(255,59,48,.4);transform:translateY(-3px)}
   .xshot{aspect-ratio:16/10;background:
      radial-gradient(120% 90% at 18% 12%,rgba(157,140,255,.22),transparent 58%),
@@ -112,17 +112,16 @@
           var shot = hasCover
             ? '<img class="cover" src="'+RAW+esc(c.slug)+'/screenshot.png" alt="" loading="lazy" onerror="this.remove()">'
             : (EMOJI[cat]||'🎴');
-          return '<div class="xcard">'
+          var openTxt = {zh:'打开体验', en:'Open', th:'เปิด'}[lang()] || 'Open';
+          return '<a class="xcard" href="'+'/card?slug='+esc(c.slug)+'">'
             + '<div class="xshot"><span class="diff">'+esc(c.difficulty||'')+' · '+esc(c.ageBands||'')+'</span>'+shot+'</div>'
             + '<div class="xbody">'
             + (isDraft?'<span class="draft">draft</span>':'')
             + '<h3>'+esc(t)+'</h3>'
             + '<div class="meta">'+esc(c.categoryLabel||'')+' · ≈'+esc(c.experiments||'')+' 次实验</div>'
             + '<p>'+esc(s)+'</p>'
-            + '<div class="xlinks">'
-            + (play?'<a href="'+esc(play)+'" target="_blank" rel="noopener">▶ Play</a>':'')
-            + '<a href="'+REPO+esc(c.slug)+'" target="_blank" rel="noopener">Learn ↗</a>'
-            + '</div></div></div>';
+            + '<div class="xlinks"><span style="color:var(--red)">▶ '+esc(openTxt)+' →</span></div>'
+            + '</div></a>';
         }).join('');
         row.innerHTML = '<h2 class="cathead display">'+esc(label)+'</h2>'
           + '<div class="catsub">'+list.length+' card'+(list.length>1?'s':'')+'</div>'

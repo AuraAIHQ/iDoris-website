@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en" data-lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI 体验卡 · iDoris</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%2309090C'/%3E%3Ccircle cx='16' cy='16' r='6' fill='%23FF3B30'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="/assets/style.css">
+<style>
+  .back{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+  .back:hover{color:var(--red)}
+  .chd{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0 0}
+  .chd .chip{font-family:var(--mono);font-size:11px;color:var(--paper-dim);border:1px solid var(--line);border-radius:999px;padding:6px 13px;background:var(--ink-2)}
+  .play{margin:30px 0 8px;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--ink-2)}
+  .play .bar{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--paper-dim)}
+  .play .bar .dot{width:8px;height:8px;border-radius:50%;background:var(--red);box-shadow:0 0 10px var(--red)}
+  .play iframe{display:block;width:100%;height:70vh;min-height:520px;border:0;background:#fff}
+  .play .launch{padding:36px 24px;text-align:center;background:
+     radial-gradient(120% 90% at 20% 10%,rgba(157,140,255,.14),transparent 60%),
+     radial-gradient(120% 90% at 90% 90%,rgba(73,199,230,.12),transparent 55%),var(--ink-2)}
+  .play .launch p{color:var(--paper-dim);font-size:14px;max-width:52ch;margin:0 auto 18px}
+  .toklabel{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:var(--cyan,#49C7E6);text-transform:uppercase}
+  .sec2{display:grid;grid-template-columns:1fr 340px;gap:40px;align-items:start;margin-top:8px}
+  .cbody h2{font-family:var(--display),var(--han);font-weight:500;font-size:24px;margin:34px 0 12px}
+  .cbody h2:first-child{margin-top:0}
+  .cbody p{font-size:15px;line-height:1.85;color:var(--paper-dim);max-width:62ch}
+  .cbody ul{padding-left:0;list-style:none;margin:0}
+  .cbody li{color:var(--paper-dim);font-size:14.5px;padding:6px 0 6px 22px;position:relative;line-height:1.7}
+  .cbody li::before{content:"─";position:absolute;left:0;color:var(--red);opacity:.55}
+  .cside{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#F4F1EC;position:sticky;top:80px}
+  .cside img{display:block;width:100%;height:auto}
+  .cside .foot{padding:14px 16px;background:var(--ink-2)}
+  .cside .foot a{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line);padding-bottom:2px}
+  .cside .foot a:hover{color:var(--red);border-color:var(--red)}
+  #err{color:var(--muted);font-size:15px;padding:30px 0}
+  @media(max-width:880px){.sec2{grid-template-columns:1fr}.cside{position:static}.play iframe{height:60vh;min-height:420px}}
+</style>
+</head>
+<body>
+
+<nav class="top">
+  <div class="wrap">
+    <a class="brand" href="/"><span class="dot"></span>iDORIS / AURAAI</a>
+    <div class="nav-scroll">
+      <a class="link" href="/cards" data-zh="卡片墙" data-th="บัตรทั้งหมด">Cards</a>
+      <a class="link" href="/buy" data-zh="购买" data-th="ซื้อ">Buy</a>
+      <a class="link" href="/friends" data-zh="我们的 IP" data-th="ตัวละคร">Doris &amp; Cherry</a>
+      <a class="link" href="https://github.com/AuraAIHQ/ai-atlas">GitHub ↗</a>
+    </div>
+    <div class="lang" role="group" aria-label="Language">
+      <button class="lang-btn" data-lang="en" aria-pressed="true">EN</button>
+      <button class="lang-btn" data-lang="zh" aria-pressed="false">中文</button>
+      <button class="lang-btn" data-lang="th" aria-pressed="false">ไทย</button>
+    </div>
+  </div>
+</nav>
+
+<main>
+<header class="hero" style="padding:40px 0 8px">
+  <div class="wrap">
+    <a class="back" href="/cards" data-zh="← 返回卡片墙" data-th="← บัตรทั้งหมด">← All cards</a>
+    <div id="head" style="margin-top:14px"></div>
+    <div id="err" style="display:none" data-zh="没找到这张卡。回到卡片墙看看？" data-th="ไม่พบบัตรนี้ กลับไปที่หน้าบัตรทั้งหมด">Card not found. Back to all cards?</div>
+  </div>
+</header>
+
+<section style="padding:20px 0 80px">
+  <div class="wrap">
+    <div id="playwrap"></div>
+    <div class="sec2">
+      <div id="body" class="cbody"></div>
+      <div id="side"></div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div>
+      <div style="color:var(--paper);font-weight:500;margin-bottom:6px">iDoris.ai</div>
+      <div data-zh="AuraAI · 组织大脑 · 数字公共物品 · Apache 2.0" data-th="AuraAI · สมององค์กร · สาธารณประโยชน์ดิจิทัล · Apache 2.0">AuraAI · The Organizational Brain · Digital Public Goods · Apache 2.0</div>
+    </div>
+    <div class="links">
+      <a href="/cards" data-zh="卡片墙" data-th="บัตรทั้งหมด">Cards</a>
+      <a href="/buy" data-zh="购买" data-th="ซื้อ">Buy</a>
+      <a href="https://github.com/AuraAIHQ/ai-atlas">ai-atlas</a>
+    </div>
+  </div>
+</footer>
+
+<script src="/assets/i18n-v2.js"></script>
+<script>
+(function () {
+  var RAW = 'https://raw.githubusercontent.com/AuraAIHQ/ai-atlas/main/cards/';
+  var L = {
+    play:   {zh:'去玩 · Playground', en:'Play · Playground', th:'เล่น · Playground'},
+    principle:{zh:'原理', en:'How it works', th:'หลักการ'},
+    learn:  {zh:'你能学到什么', en:"What you'll learn", th:'สิ่งที่จะได้เรียนรู้'},
+    reproduce:{zh:'怎么复现（自己做）', en:'Reproduce it yourself', th:'ทำเองอย่างไร'},
+    exp:    {zh:'约 N 个实验', en:'~N experiments', th:'~N การทดลอง'},
+    open:   {zh:'在新窗口打开 playground', en:'Open playground in a new tab', th:'เปิด playground ในแท็บใหม่'},
+    launch: {zh:'开始玩', en:'Launch', th:'เริ่มเล่น'},
+    embedhint:{zh:'下面直接在本页体验（由模型驱动，自建推理正在路上）', en:'Try it right here on this page (model-powered; self-hosted inference on the way)', th:'ลองได้บนหน้านี้เลย (ขับเคลื่อนด้วยโมเดล; การรันเองกำลังจะมา)'},
+    source: {zh:'查看开源内容 ↗', en:'View open source ↗', th:'ดูซอร์สโค้ด ↗'},
+    tokens: {zh:'用你的体验卡 token 运行', en:'Runs on your card tokens', th:'ใช้โทเคนจากบัตรของคุณ'}
+  };
+  function lang(){ var l=document.documentElement.getAttribute('data-lang')||'en'; return L.play[l]?l:'en'; }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  function pick(o){ if(!o) return ''; var l=lang(); return o[l]||o.zh||o.en||''; }
+  function label(k){ return L[k][lang()]||L[k].en; }
+
+  var params = new URLSearchParams(location.search);
+  var slug = (params.get('slug')||'').replace(/[^a-z0-9-]/g,'');
+  var card = null;
+
+  function renderHead(){
+    if(!card) return;
+    var t = pick(card.title);
+    document.title = t + ' · iDoris 体验卡';
+    var exp = label('exp').replace('N', card.experiments||'');
+    document.getElementById('head').innerHTML =
+      '<div class="eyebrow">'+esc(card.categoryLabel||'')+'</div>'
+      + '<h1 class="display" style="font-size:clamp(30px,5vw,52px);margin:16px 0 10px">'+esc(t)+'</h1>'
+      + '<p class="lede" style="max-width:60ch">'+esc(pick(card.summary))+'</p>'
+      + '<div class="chd"><span class="chip">'+esc(card.difficulty||'')+'</span><span class="chip">'+esc(card.ageBands||'')+'</span><span class="chip">'+esc(exp)+'</span></div>';
+  }
+  function renderPlay(){
+    if(!card) return;
+    var pg = card.playground||{};
+    var html = '<div class="play"><div class="bar"><span class="dot"></span>'+esc(label('play'))+'　·　<span class="toklabel">'+esc(label('tokens'))+'</span></div>';
+    if (pg.embed) {
+      html += '<div style="padding:10px 16px 0;font-size:13px;color:var(--muted)">'+esc(label('embedhint'))+'</div>';
+      html += '<iframe src="'+esc(pg.embed)+'" allow="camera;microphone;clipboard-write" loading="lazy" referrerpolicy="no-referrer"></iframe>';
+    } else {
+      html += '<div class="launch"><p>'+esc(label('embedhint'))+'</p>'
+        + '<a class="btn primary" href="'+esc(pg.url||'#')+'" target="_blank" rel="noopener">'+esc(label('launch'))+' →</a></div>';
+    }
+    if (pg.url) html += '<div style="padding:10px 16px;border-top:1px solid var(--line)"><a class="back" href="'+esc(pg.url)+'" target="_blank" rel="noopener">'+esc(label('open'))+' ↗</a></div>';
+    html += '</div>';
+    document.getElementById('playwrap').innerHTML = html;
+  }
+  function renderBody(){
+    if(!card) return;
+    var b = card.body||{}; var out='';
+    if (b.principle){ out += '<h2 class="display">'+esc(label('principle'))+'</h2><p>'+esc(pick(b.principle)).replace(/\n/g,'<br>')+'</p>'; }
+    if (b.learn){ var arr=b.learn[lang()]||b.learn.zh||[]; out += '<h2 class="display">'+esc(label('learn'))+'</h2><ul>'+arr.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul>'; }
+    if (b.reproduce){ var r=b.reproduce[lang()]||b.reproduce.zh||[]; out += '<h2 class="display">'+esc(label('reproduce'))+'</h2><ul>'+r.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul>'; }
+    if(!out){ out = '<p style="color:var(--muted)">正文整理中… / Content in progress…</p>'; }
+    document.getElementById('body').innerHTML = out;
+  }
+  function renderSide(){
+    if(!card) return;
+    document.getElementById('side').innerHTML =
+      '<div class="cside"><img src="'+RAW+esc(slug)+'/screenshot.png" alt="" onerror="this.style.display=\'none\'">'
+      + '<div class="foot"><a href="https://github.com/AuraAIHQ/ai-atlas/tree/main/cards/'+esc(slug)+'" target="_blank" rel="noopener">'+esc(label('source'))+'</a></div></div>';
+  }
+  function renderAll(){ renderHead(); renderPlay(); renderBody(); renderSide(); }
+
+  if (!slug){ document.getElementById('err').style.display='block'; return; }
+  fetch(RAW + slug + '/card.json').then(function(r){ if(!r.ok) throw 0; return r.json(); })
+    .then(function(c){ card=c; renderAll(); })
+    .catch(function(){ document.getElementById('err').style.display='block'; });
+
+  // 语言切换：i18n-v2.js 切静态节点 + data-lang；我们再重渲染动态内容。
+  document.querySelectorAll('.lang-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){ setTimeout(renderAll, 0); });
+  });
+})();
+</script>
+</body>
+</html>
