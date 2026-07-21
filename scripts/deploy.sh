@@ -27,6 +27,7 @@ die()  { echo "${RED}✗ $1${OFF}" >&2; exit 1; }
 # 站点里所有需要存在的页面（新增页面时加到这里）
 PAGES=(
   "/"
+  "/join"
 )
 
 # ─────────────────────────────────────────────
@@ -40,7 +41,9 @@ echo "${DIM}── 本地自检 ──${OFF}"
 for p in "${PAGES[@]}"; do
   f="$DIST${p}"
   [ "$p" = "/" ] && f="$DIST/index.html"
-  [ -f "$f" ] || die "页面缺失：$f（PAGES 里声明了但文件不在）"
+  # Cloudflare Pages 的 clean URL：/join 由 join.html 提供，补 .html 再找一次
+  [ -f "$f" ] || f="${f}.html"
+  [ -f "$f" ] || die "页面缺失：${p}（PAGES 里声明了但文件不在）"
 done
 ok "${#PAGES[@]} 个页面文件齐全"
 
@@ -51,7 +54,8 @@ broken=0
 while IFS= read -r link; do
   target="$DIST${link}"
   [ "$link" = "/" ] && target="$DIST/index.html"
-  if [ ! -e "$target" ]; then
+  # clean URL：/join 命中 join.html 也算存在
+  if [ ! -e "$target" ] && [ ! -e "${target}.html" ]; then
     echo "  ${RED}断链${OFF} $link"
     broken=$((broken + 1))
   fi
@@ -65,7 +69,7 @@ ok "站内引用（href + src）无断链"
 # 切词，文件名一旦含空格就被拆成两半，两个片段都 grep 不到 —— 检查会静默跳过
 # 那个页面，而不是报错。这正是这些闸要防的那类「悄悄不生效」。
 #
-# 1) 双语硬依赖：页面有切换按钮就必须引入 i18n.js，否则点了没反应。
+# 1) 多语硬依赖：页面有切换按钮就必须引入 i18n 脚本，否则点了没反应。
 #    探针用 lang-btn 而非 class="lang" —— 后者是精确串匹配，容器一旦变成
 #    class="lang xxx" 就会失配，检查悄悄退化成死代码。
 #
@@ -81,8 +85,8 @@ while IFS= read -r -d '' f; do
   #   2. 变量名解析不是多字节感知的：写 "$rel（…" 会把全角括号的字节吃进变量名，
   #      于是 set -u 报 rel? unbound。必须写成 ${rel} 来界定边界。
   rel="${f#$DIST}"
-  if grep -q 'lang-btn' "$f" && ! grep -q 'assets/i18n.js' "$f"; then
-    echo "  ${RED}缺 i18n.js${OFF} ${rel}（有切换按钮却没引入脚本）"
+  if grep -q 'lang-btn' "$f" && ! grep -qE 'assets/i18n[^"]*\.js' "$f"; then
+    echo "  ${RED}缺 i18n 脚本${OFF} ${rel}（有切换按钮却没引入脚本）"
     missing_i18n=$((missing_i18n + 1))
   fi
   if ! grep -qE '<html[^>]*data-lang="en"' "$f"; then
@@ -92,7 +96,7 @@ while IFS= read -r -d '' f; do
 done < <(find "$DIST" -name '*.html' -print0)
 
 [ "$missing_i18n" -eq 0 ] || die "发现 $missing_i18n 个页面的语言切换会失效，已中止发布"
-ok "双语脚本引入完整"
+ok "多语脚本引入完整"
 [ "$missing_lang" -eq 0 ] || die "发现 $missing_lang 个页面首帧样式会错，已中止发布"
 ok "首帧语言属性完整"
 
@@ -102,10 +106,9 @@ while IFS= read -r -d '' f; do big="$f"; break; done < <(find "$DIST" -type f -s
 [ -z "$big" ] || die "文件过大，超出 Cloudflare Pages 限制：$big"
 
 # 图片预算：忘记压缩不会报错，只会让页面悄悄变重 —— 所以设一道硬闸。
-# 小J 插画走「抠透明 + 64 色量化」（scripts/ink-to-transparent.py），
-# 出来通常 40-120KB。FLUX 直出的原始 PNG 是 500KB-1.2MB，
-# 一旦有人直接扔进来，这里拦住。
-IMG_BUDGET_KB=200
+# Doris 插画走量化压缩后通常在 250-380KB。生成器直出的原始 PNG
+# 常常 1-2MB，一旦有人直接扔进来，这里拦住。
+IMG_BUDGET_KB=400
 oversized=0
 while IFS= read -r -d '' f; do
   kb=$(( $(wc -c < "$f") / 1024 ))

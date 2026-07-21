@@ -38,7 +38,7 @@ AuraAI 是 AI 给的建议——一个烂大街的名字。等我们去注册域
 
 - 协议：Apache 2.0
 - 仓库：[AuraAIHQ/Self-FDE-WorkBench](https://github.com/AuraAIHQ/Self-FDE-WorkBench)
-- 站点：[self-fde-workbench.pages.dev](https://self-fde-workbench.pages.dev)
+- 站点：[workbench.idoris.ai](https://workbench.idoris.ai)
 
 ### 🧠 iDoris — 最贴身的那个大脑
 
@@ -102,7 +102,7 @@ site/
 └── assets/
     ├── style.css
     ├── i18n.js             中英切换（EN 内联默认，中文在 data-zh）
-    └── illustrations/      小J 手绘插图
+    └── illustrations/      Doris 手绘插图
 ```
 
 ---
