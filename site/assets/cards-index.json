@@ -1,0 +1,282 @@
+{
+  "schema": 1,
+  "count": 12,
+  "cards": [
+    {
+      "slug": "chat-with-your-pdf",
+      "title": {
+        "zh": "和你的资料对话",
+        "en": "Chat with your own docs"
+      },
+      "category": "chatbot",
+      "categoryLabel": "💬 造个聊天助手",
+      "difficulty": "进阶",
+      "ageBands": "大专→大学 / 老师",
+      "experiments": 3,
+      "summary": {
+        "zh": "上传 PDF/笔记，做一个基于你自己资料回答的问答机器人。理解 RAG。"
+      },
+      "playground": {
+        "url": "https://aistudio.google.com"
+      },
+      "source": {
+        "repo": "https://github.com/AlaGrine/RAG_chatabot_with_Langchain"
+      },
+      "companion": "doris-search",
+      "status": "draft"
+    },
+    {
+      "slug": "doodle-dragon",
+      "title": {
+        "zh": "涂鸦变神龙",
+        "en": "Doodle to dragon"
+      },
+      "category": "drawing",
+      "categoryLabel": "🎨 涂鸦成画",
+      "difficulty": "入门",
+      "ageBands": "小学→高中",
+      "experiments": 4,
+      "summary": {
+        "zh": "画一条歪歪扭扭的龙，AI 把它补成一张精致插画。理解 sketch→image。"
+      },
+      "playground": {
+        "url": "https://huggingface.co/spaces/myn0908/S2I-Artwork-Sketch-to-Image-Diffusion"
+      },
+      "source": {
+        "repo": "https://github.com/replicate/scribble-diffusion"
+      },
+      "companion": "cherry-smile",
+      "status": "draft"
+    },
+    {
+      "slug": "kids-art-gallery",
+      "title": {
+        "zh": "给孩子办一场线上画展",
+        "en": "An online gallery for your kid's art"
+      },
+      "category": "build-an-idea",
+      "categoryLabel": "✨ 帮你完成一个想法",
+      "difficulty": "入门",
+      "ageBands": "有孩子的家庭",
+      "experiments": 4,
+      "summary": {
+        "zh": "把孩子的画拍下来，十分钟做一个会发光、能旋转、带网址的在线画廊；可配文字甚至配音。"
+      },
+      "playground": {
+        "url": "https://aistudio.google.com"
+      },
+      "source": {
+        "repo": "https://github.com/Nutlope/llamacoder"
+      },
+      "companion": "cherry-smile",
+      "status": "draft"
+    },
+    {
+      "slug": "particle-play",
+      "title": {
+        "zh": "让图形动起来",
+        "en": "Make shapes come alive"
+      },
+      "category": "animation",
+      "categoryLabel": "🎬 做个动画",
+      "difficulty": "入门",
+      "ageBands": "初中→大学",
+      "experiments": 3,
+      "summary": {
+        "zh": "用几行创意代码，让粒子、线条随机地动起来——第一次感受“代码即画笔”。"
+      },
+      "playground": {
+        "url": "https://editor.p5js.org"
+      },
+      "source": {
+        "repo": "https://github.com/processing/p5.js"
+      },
+      "companion": "cherry-curious",
+      "status": "draft"
+    },
+    {
+      "slug": "prompt-to-clip",
+      "title": {
+        "zh": "一句话变成动画短片",
+        "en": "A sentence becomes a clip"
+      },
+      "category": "animation",
+      "categoryLabel": "🎬 做个动画",
+      "difficulty": "入门",
+      "ageBands": "初中→大学",
+      "experiments": 3,
+      "summary": {
+        "zh": "输入一句话，AI 生成几秒的动画短片。理解“文生视频”是怎么回事。"
+      },
+      "playground": {
+        "url": "https://huggingface.co/spaces/ByteDance/AnimateDiff-Lightning"
+      },
+      "source": {
+        "repo": "https://huggingface.co/spaces/multimodalart/stable-video-diffusion"
+      },
+      "companion": "doris-surprise",
+      "status": "draft"
+    },
+    {
+      "slug": "quick-draw-guess",
+      "title": {
+        "zh": "AI 猜猜我画的啥",
+        "en": "Can the AI guess your doodle?"
+      },
+      "category": "drawing",
+      "categoryLabel": "🎨 涂鸦成画",
+      "difficulty": "入门",
+      "ageBands": "小学+",
+      "experiments": 3,
+      "summary": {
+        "zh": "随手画，神经网络实时猜你画的是什么。第一次直观看懂“分类”。"
+      },
+      "playground": {
+        "url": "https://quickdraw.withgoogle.com"
+      },
+      "source": {
+        "repo": "https://github.com/googlecreativelab/quickdraw-dataset"
+      },
+      "companion": "cherry-tilt",
+      "status": "draft"
+    },
+    {
+      "slug": "roleplay-tutor",
+      "title": {
+        "zh": "随身口语陪练",
+        "en": "A roleplay language tutor"
+      },
+      "category": "chatbot",
+      "categoryLabel": "💬 造个聊天助手",
+      "difficulty": "入门",
+      "ageBands": "高中→大学 / 老师",
+      "experiments": 4,
+      "summary": {
+        "zh": "做一个会角色扮演的聊天机器人：它是巴黎咖啡馆服务员，只用简单法语跟你对话并纠错。"
+      },
+      "playground": {
+        "url": "https://aistudio.google.com"
+      },
+      "source": {
+        "repo": "https://github.com/vercel/ai"
+      },
+      "companion": "doris-smile",
+      "status": "draft"
+    },
+    {
+      "slug": "sentence-to-game",
+      "title": {
+        "zh": "一句话生成小游戏",
+        "en": "A sentence becomes a game"
+      },
+      "category": "mini-game",
+      "categoryLabel": "🕹 做个小游戏",
+      "difficulty": "入门",
+      "ageBands": "初中→大专",
+      "experiments": 3,
+      "summary": {
+        "zh": "描述一个游戏，AI 生成一个能玩的网页游戏 + 素材。你来当设计师。"
+      },
+      "playground": {
+        "url": "https://rosebud.ai"
+      },
+      "source": {
+        "repo": "https://github.com/phaserjs/phaser"
+      },
+      "companion": "doris-smile",
+      "status": "draft"
+    },
+    {
+      "slug": "sound-trigger",
+      "title": {
+        "zh": "拍手就触发",
+        "en": "Clap to trigger"
+      },
+      "category": "train-your-own",
+      "categoryLabel": "🤖 训练你自己的 AI",
+      "difficulty": "入门",
+      "ageBands": "小学→职校",
+      "experiments": 3,
+      "summary": {
+        "zh": "训练一个声音模型：拍手、吹口哨触发不同动作。声音也能被“学会”。"
+      },
+      "playground": {
+        "url": "https://teachablemachine.withgoogle.com"
+      },
+      "source": {
+        "repo": "https://github.com/tensorflow/tfjs-examples"
+      },
+      "companion": "cherry-smile",
+      "status": "draft"
+    },
+    {
+      "slug": "teach-cat-or-dog",
+      "title": {
+        "zh": "5 分钟教它认猫狗",
+        "en": "Teach it cats vs dogs in 5 min"
+      },
+      "category": "train-your-own",
+      "categoryLabel": "🤖 训练你自己的 AI",
+      "difficulty": "入门",
+      "ageBands": "小学→职校",
+      "experiments": 3,
+      "summary": {
+        "zh": "用摄像头给几张例子，训练一个自己的图像分类器，看它实时判断。"
+      },
+      "playground": {
+        "url": "https://teachablemachine.withgoogle.com"
+      },
+      "source": {
+        "repo": "https://github.com/googlecreativelab/teachablemachine-community"
+      },
+      "companion": "doris-think",
+      "status": "draft"
+    },
+    {
+      "slug": "ten-minute-website",
+      "title": {
+        "zh": "十分钟上线你的民宿网站",
+        "en": "Your rental site in 10 minutes"
+      },
+      "category": "build-an-idea",
+      "categoryLabel": "✨ 帮你完成一个想法",
+      "difficulty": "入门",
+      "ageBands": "人人 / 民宿主",
+      "experiments": 4,
+      "summary": {
+        "zh": "房间、照片、评价、周边一页搞定，还能加预订。二维码印名片，客人自己看，不用一条条重发。"
+      },
+      "playground": {
+        "url": "https://aistudio.google.com"
+      },
+      "source": {
+        "repo": "https://github.com/e2b-dev/fragments"
+      },
+      "companion": "doris-smile",
+      "status": "draft"
+    },
+    {
+      "slug": "webcam-controller",
+      "title": {
+        "zh": "用身体控制游戏",
+        "en": "Control a game with your body"
+      },
+      "category": "mini-game",
+      "categoryLabel": "🕹 做个小游戏",
+      "difficulty": "进阶",
+      "ageBands": "初中→大专",
+      "experiments": 4,
+      "summary": {
+        "zh": "训练一个姿态/手势模型，用摄像头控制一个小游戏的角色。"
+      },
+      "playground": {
+        "url": "https://teachablemachine.withgoogle.com"
+      },
+      "source": {
+        "repo": "https://github.com/ml5js/ml5-library"
+      },
+      "companion": "cherry-run",
+      "status": "draft"
+    }
+  ]
+}
