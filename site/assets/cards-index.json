@@ -46,7 +46,7 @@
         "repo": "https://github.com/replicate/scribble-diffusion"
       },
       "companion": "cherry-smile",
-      "status": "draft"
+      "status": "review"
     },
     {
       "slug": "kids-art-gallery",
@@ -69,7 +69,7 @@
         "repo": "https://github.com/Nutlope/llamacoder"
       },
       "companion": "cherry-smile",
-      "status": "draft"
+      "status": "review"
     },
     {
       "slug": "particle-play",

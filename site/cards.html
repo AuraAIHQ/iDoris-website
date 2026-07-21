@@ -17,8 +17,9 @@
   .xshot{aspect-ratio:16/10;background:
      radial-gradient(120% 90% at 18% 12%,rgba(157,140,255,.22),transparent 58%),
      radial-gradient(120% 90% at 90% 92%,rgba(73,199,230,.18),transparent 55%),#F4F1EC;
-     display:flex;align-items:center;justify-content:center;font-size:44px;position:relative}
-  .xshot .diff{position:absolute;left:10px;top:10px;font-family:var(--mono);font-size:10px;letter-spacing:.06em;color:#3a3a44;background:rgba(255,255,255,.72);padding:2px 8px;border-radius:5px}
+     display:flex;align-items:center;justify-content:center;font-size:44px;position:relative;overflow:hidden}
+  .xshot .cover{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  .xshot .diff{z-index:2;position:absolute;left:10px;top:10px;font-family:var(--mono);font-size:10px;letter-spacing:.06em;color:#3a3a44;background:rgba(255,255,255,.72);padding:2px 8px;border-radius:5px}
   .xbody{padding:16px 16px 18px;display:flex;flex-direction:column;gap:8px;flex:1}
   .xbody h3{font-family:var(--display),var(--han);font-weight:500;font-size:17px;margin:0}
   .xbody .meta{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;color:var(--muted)}
@@ -88,6 +89,7 @@
 <script>
   (function () {
     var REPO = 'https://github.com/AuraAIHQ/ai-atlas/tree/main/cards/';
+    var RAW = 'https://raw.githubusercontent.com/AuraAIHQ/ai-atlas/main/cards/';
     var EMOJI = { animation:'🎬', drawing:'🎨', 'mini-game':'🕹', 'train-your-own':'🤖', chatbot:'💬', 'build-an-idea':'✨', 'data-viz':'📊' };
     var ORDER = ['animation','drawing','mini-game','train-your-own','chatbot','build-an-idea','data-viz'];
     function esc(s){ return String(s||'').replace(/[&<>"]/g, function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
@@ -106,8 +108,12 @@
           var s = (c.summary && (c.summary[lang()]||c.summary.zh)) || '';
           var play = c.playground && c.playground.url;
           var isDraft = c.status && c.status !== 'published';
+          var hasCover = c.status && c.status !== 'draft';
+          var shot = hasCover
+            ? '<img class="cover" src="'+RAW+esc(c.slug)+'/screenshot.png" alt="" loading="lazy" onerror="this.remove()">'
+            : (EMOJI[cat]||'🎴');
           return '<div class="xcard">'
-            + '<div class="xshot"><span class="diff">'+esc(c.difficulty||'')+' · '+esc(c.ageBands||'')+'</span>'+(EMOJI[cat]||'🎴')+'</div>'
+            + '<div class="xshot"><span class="diff">'+esc(c.difficulty||'')+' · '+esc(c.ageBands||'')+'</span>'+shot+'</div>'
             + '<div class="xbody">'
             + (isDraft?'<span class="draft">draft</span>':'')
             + '<h3>'+esc(t)+'</h3>'
