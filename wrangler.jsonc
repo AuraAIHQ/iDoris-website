@@ -2,5 +2,8 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "idoris-website",
   "compatibility_date": "2026-07-01",
-  "pages_build_output_dir": "site"
+  "pages_build_output_dir": "site",
+  "kv_namespaces": [
+    { "binding": "ENTITLEMENTS", "id": "3df54b52643c41c192873cd0d6c96bba" }
+  ]
 }

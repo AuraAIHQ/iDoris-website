@@ -134,6 +134,33 @@
       box.className = 'status show ' + (st === 'success' ? 'ok' : 'no');
     }
 
+    // 支付成功：轮询履约结果（token 发放可能比跳转晚几秒），展示卡数/token/兑换码。
+    if (st === 'success') {
+      var sid = params.get('session_id');
+      if (sid) {
+        var tries = 0;
+        (function poll() {
+          tries++;
+          fetch('/api/entitlement?session_id=' + encodeURIComponent(sid))
+            .then(function (r) { return r.json(); })
+            .then(function (d) {
+              var lang = document.documentElement.getAttribute('data-lang') || 'en';
+              if (d && d.status === 'active') {
+                var t = lang === 'zh'
+                  ? '✅ 已到账：' + d.cards + ' 张卡 · ' + d.tokens.toLocaleString() + ' tokens。兑换码：' + d.code
+                  : lang === 'th'
+                  ? '✅ ได้รับแล้ว: ' + d.cards + ' ใบ · ' + d.tokens.toLocaleString() + ' tokens · โค้ด: ' + d.code
+                  : '✅ Delivered: ' + d.cards + ' card(s) · ' + d.tokens.toLocaleString() + ' tokens. Redeem code: ' + d.code;
+                box.textContent = t;
+              } else if (tries < 6) {
+                setTimeout(poll, 2000);
+              }
+            })
+            .catch(function () { if (tries < 6) setTimeout(poll, 2000); });
+        })();
+      }
+    }
+
     function fail(text){ box.textContent = text; box.className = 'status show no'; box.scrollIntoView({behavior:'smooth',block:'center'}); }
 
     document.querySelectorAll('.plan button[data-sku]').forEach(function (btn) {
