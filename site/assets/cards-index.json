@@ -109,7 +109,8 @@
       "slug": "prompt-to-clip",
       "title": {
         "zh": "一句话变成动画短片",
-        "en": "A sentence becomes a clip"
+        "en": "A sentence becomes a clip",
+        "th": "ประโยคเดียวเป็นคลิป"
       },
       "category": "animation",
       "categoryLabel": "🎬 做个动画",
@@ -117,7 +118,9 @@
       "ageBands": "初中→大学",
       "experiments": 3,
       "summary": {
-        "zh": "输入一句话，AI 生成几秒的动画短片。理解“文生视频”是怎么回事。"
+        "zh": "输入一句话，AI 生成几秒的动画短片。理解“文生视频”是怎么回事。",
+        "en": "Type a sentence, get a few-second animated clip. See how text-to-video works.",
+        "th": "พิมพ์ประโยคเดียว ได้คลิปแอนิเมชันไม่กี่วินาที ดูว่า text-to-video ทำงานอย่างไร"
       },
       "playground": {
         "url": "https://huggingface.co/spaces/ByteDance/AnimateDiff-Lightning"
@@ -155,7 +158,8 @@
       "slug": "roleplay-tutor",
       "title": {
         "zh": "随身口语陪练",
-        "en": "A roleplay language tutor"
+        "en": "A roleplay language tutor",
+        "th": "ติวเตอร์สนทนาสวมบทบาท"
       },
       "category": "chatbot",
       "categoryLabel": "💬 造个聊天助手",
@@ -163,7 +167,9 @@
       "ageBands": "高中→大学 / 老师",
       "experiments": 4,
       "summary": {
-        "zh": "做一个会角色扮演的聊天机器人：它是巴黎咖啡馆服务员，只用简单法语跟你对话并纠错。"
+        "zh": "做一个会角色扮演的聊天机器人：它是巴黎咖啡馆服务员，只用简单法语跟你对话并纠错。",
+        "en": "A chatbot that role-plays a scene and corrects you live — a pocket speaking partner.",
+        "th": "แชตบอตที่สวมบทบาทและแก้ให้คุณทันที — คู่ฝึกพูดพกพา"
       },
       "playground": {
         "url": "https://aistudio.google.com"
