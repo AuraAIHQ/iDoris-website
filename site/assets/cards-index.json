@@ -92,7 +92,7 @@
         "repo": "https://github.com/processing/p5.js"
       },
       "companion": "cherry-curious",
-      "status": "draft"
+      "status": "review"
     },
     {
       "slug": "prompt-to-clip",
@@ -184,7 +184,7 @@
         "repo": "https://github.com/phaserjs/phaser"
       },
       "companion": "doris-smile",
-      "status": "draft"
+      "status": "review"
     },
     {
       "slug": "sound-trigger",
@@ -235,16 +235,16 @@
     {
       "slug": "ten-minute-website",
       "title": {
-        "zh": "十分钟上线你的民宿网站",
-        "en": "Your rental site in 10 minutes"
+        "zh": "十分钟上线你的 Airbnb 房源网站",
+        "en": "Your Airbnb listing site in 10 minutes"
       },
       "category": "build-an-idea",
       "categoryLabel": "✨ 帮你完成一个想法",
       "difficulty": "入门",
-      "ageBands": "人人 / 民宿主",
+      "ageBands": "人人 / Airbnb 房东",
       "experiments": 4,
       "summary": {
-        "zh": "房间、照片、评价、周边一页搞定，还能加预订。二维码印名片，客人自己看，不用一条条重发。"
+        "zh": "有一两间空房出租？房间、照片、评价、周边一页搞定，还能加预订。二维码印名片，客人自己看，不用一条条重发。"
       },
       "playground": {
         "url": "https://aistudio.google.com"
