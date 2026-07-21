@@ -45,4 +45,4 @@ codex exec --skip-git-repo-check --image docs/doris-character-reference.png - < 
 - 除 `iDORIS` / `AI` 徽章外，不要在图里烤进其它文字。
 
 ### 已生成的场景插图
-- `site/assets/illustrations/_join_doris_draft.png` —— 招聘页 `/join`：Doris 伸手欢迎实习生，中间三图标对应三条业务线（黑客松奖杯 / 公司握手 / AI 插头+数据流）。
+- `site/assets/illustrations/join-hiring-idoris.png` —— 招聘页 `/join` hero：Doris 伸手欢迎实习生，中间三图标对应三条业务线（黑客松奖杯 / 公司握手 / AI 插头+数据流）。codex 直出后用 PIL `quantize(colors=128)` 压到 ~326KB 以过发布预算。
