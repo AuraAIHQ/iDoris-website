@@ -58,7 +58,8 @@
       "slug": "kids-art-gallery",
       "title": {
         "zh": "给孩子办一场线上画展",
-        "en": "An online gallery for your kid's art"
+        "en": "An online gallery for your kid's art",
+        "th": "จัดนิทรรศการภาพวาดออนไลน์ให้ลูก"
       },
       "category": "build-an-idea",
       "categoryLabel": "✨ 帮你完成一个想法",
@@ -66,7 +67,9 @@
       "ageBands": "有孩子的家庭",
       "experiments": 4,
       "summary": {
-        "zh": "把孩子的画拍下来，十分钟做一个会发光、能旋转、带网址的在线画廊；可配文字甚至配音。"
+        "zh": "把孩子的画拍下来，十分钟做一个会发光、能旋转、带网址的在线画廊；可配文字甚至配音。",
+        "en": "Photograph your kid's drawings and build a glowing online gallery in 10 minutes.",
+        "th": "ถ่ายภาพวาดของลูก แล้วสร้างแกลเลอรีออนไลน์เรืองแสงใน 10 นาที"
       },
       "playground": {
         "url": "https://aistudio.google.com"
@@ -135,7 +138,8 @@
       "slug": "quick-draw-guess",
       "title": {
         "zh": "AI 猜猜我画的啥",
-        "en": "Can the AI guess your doodle?"
+        "en": "Can the AI guess your doodle?",
+        "th": "AI ทายว่าฉันวาดอะไร"
       },
       "category": "drawing",
       "categoryLabel": "🎨 涂鸦成画",
@@ -143,7 +147,9 @@
       "ageBands": "小学+",
       "experiments": 3,
       "summary": {
-        "zh": "随手画，神经网络实时猜你画的是什么。第一次直观看懂“分类”。"
+        "zh": "随手画，神经网络实时猜你画的是什么。第一次直观看懂“分类”。",
+        "en": "Doodle and a neural net guesses in real time. The clearest way to 'get' classification.",
+        "th": "ขีดเขียน แล้วโครงข่ายประสาทเดาแบบเรียลไทม์ วิธีเข้าใจการจำแนกที่ชัดที่สุด"
       },
       "playground": {
         "url": "https://quickdraw.withgoogle.com"
@@ -184,7 +190,8 @@
       "slug": "sentence-to-game",
       "title": {
         "zh": "一句话生成小游戏",
-        "en": "A sentence becomes a game"
+        "en": "A sentence becomes a game",
+        "th": "ประโยคเดียวสร้างเกม"
       },
       "category": "mini-game",
       "categoryLabel": "🕹 做个小游戏",
@@ -192,7 +199,9 @@
       "ageBands": "初中→大专",
       "experiments": 3,
       "summary": {
-        "zh": "描述一个游戏，AI 生成一个能玩的网页游戏 + 素材。你来当设计师。"
+        "zh": "描述一个游戏，AI 生成一个能玩的网页游戏 + 素材。你来当设计师。",
+        "en": "Describe a game and AI generates a playable web game plus assets. You're the designer.",
+        "th": "บรรยายเกม แล้ว AI สร้างเกมเว็บที่เล่นได้พร้อมอาร์ตเวิร์ก คุณคือดีไซเนอร์"
       },
       "playground": {
         "url": "https://rosebud.ai"
@@ -207,7 +216,8 @@
       "slug": "sound-trigger",
       "title": {
         "zh": "拍手就触发",
-        "en": "Clap to trigger"
+        "en": "Clap to trigger",
+        "th": "ปรบมือแล้วสั่งงาน"
       },
       "category": "train-your-own",
       "categoryLabel": "🤖 训练你自己的 AI",
@@ -215,7 +225,9 @@
       "ageBands": "小学→职校",
       "experiments": 3,
       "summary": {
-        "zh": "训练一个声音模型：拍手、吹口哨触发不同动作。声音也能被“学会”。"
+        "zh": "训练一个声音模型：拍手、吹口哨触发不同动作。声音也能被“学会”。",
+        "en": "Train a sound model so a clap or whistle triggers an action. Sound can be 'learned' too.",
+        "th": "ฝึกโมเดลเสียงให้การปรบมือหรือผิวปากสั่งงานได้ เสียงก็ 'เรียนรู้' ได้"
       },
       "playground": {
         "url": "https://teachablemachine.withgoogle.com"
@@ -230,7 +242,8 @@
       "slug": "teach-cat-or-dog",
       "title": {
         "zh": "5 分钟教它认猫狗",
-        "en": "Teach it cats vs dogs in 5 min"
+        "en": "Teach it cats vs dogs in 5 min",
+        "th": "สอนมันแยกแมวกับหมาใน 5 นาที"
       },
       "category": "train-your-own",
       "categoryLabel": "🤖 训练你自己的 AI",
@@ -238,7 +251,9 @@
       "ageBands": "小学→职校",
       "experiments": 3,
       "summary": {
-        "zh": "用摄像头给几张例子，训练一个自己的图像分类器，看它实时判断。"
+        "zh": "用摄像头给几张例子，训练一个自己的图像分类器，看它实时判断。",
+        "en": "Give a webcam a few examples and train your own image classifier in minutes.",
+        "th": "ให้ตัวอย่างผ่านเว็บแคมไม่กี่ภาพ แล้วฝึกตัวจำแนกภาพของคุณเองในไม่กี่นาที"
       },
       "playground": {
         "url": "https://teachablemachine.withgoogle.com"
@@ -253,7 +268,8 @@
       "slug": "ten-minute-website",
       "title": {
         "zh": "十分钟上线你的 Airbnb 房源网站",
-        "en": "Your Airbnb listing site in 10 minutes"
+        "en": "Your Airbnb listing site in 10 minutes",
+        "th": "สร้างเว็บ Airbnb ของคุณใน 10 นาที"
       },
       "category": "build-an-idea",
       "categoryLabel": "✨ 帮你完成一个想法",
@@ -261,7 +277,9 @@
       "ageBands": "人人 / Airbnb 房东",
       "experiments": 4,
       "summary": {
-        "zh": "有一两间空房出租？房间、照片、评价、周边一页搞定，还能加预订。二维码印名片，客人自己看，不用一条条重发。"
+        "zh": "有一两间空房出租？房间、照片、评价、周边一页搞定，还能加预订。二维码印名片，客人自己看，不用一条条重发。",
+        "en": "One or two rooms to rent? Build a proper listing site in 10 minutes — with booking and a QR code.",
+        "th": "มีห้องว่างสักหนึ่งสองห้อง? สร้างเว็บแนะนำที่พักใน 10 นาที พร้อมจองและ QR code"
       },
       "playground": {
         "url": "https://aistudio.google.com"
@@ -276,7 +294,8 @@
       "slug": "webcam-controller",
       "title": {
         "zh": "用身体控制游戏",
-        "en": "Control a game with your body"
+        "en": "Control a game with your body",
+        "th": "ใช้ร่างกายคุมเกม"
       },
       "category": "mini-game",
       "categoryLabel": "🕹 做个小游戏",
@@ -284,7 +303,9 @@
       "ageBands": "初中→大专",
       "experiments": 4,
       "summary": {
-        "zh": "训练一个姿态/手势模型，用摄像头控制一个小游戏的角色。"
+        "zh": "训练一个姿态/手势模型，用摄像头控制一个小游戏的角色。",
+        "en": "Train a pose/gesture model and control a character with your body via webcam.",
+        "th": "ฝึกโมเดลท่าทาง แล้วคุมตัวละครด้วยร่างกายผ่านเว็บแคม"
       },
       "playground": {
         "url": "https://teachablemachine.withgoogle.com"
