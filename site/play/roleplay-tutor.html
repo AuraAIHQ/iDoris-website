@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en" data-lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>随身口语陪练 · Roleplay tutor · iDoris playground</title>
+<style>
+  :root{--paper:#F4F1EC;--ink:#26241f;--dim:#8a8578;--line:#d9d3c8;--orange:#FF5233;--cyan:#49C7E6;--green:#2Fae7e;--mono:ui-monospace,Menlo,monospace}
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--paper);color:var(--ink);font-family:var(--mono);-webkit-font-smoothing:antialiased}
+  body{display:flex;flex-direction:column;max-width:640px;margin:0 auto;padding:12px;height:100vh}
+  .lang{position:fixed;right:10px;top:10px;display:flex;gap:4px;z-index:5}
+  .lang button{font:inherit;font-size:11px;padding:4px 8px;border:1px solid var(--line);background:#fff;color:var(--dim);border-radius:6px;cursor:pointer}
+  .lang button.on{border-color:var(--orange);color:var(--orange)}
+  h1{font-size:15px;margin:0 0 6px}
+  .roles{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+  .roles button{font:inherit;font-size:11px;padding:6px 10px;border:1px solid var(--line);background:#fff;color:var(--dim);border-radius:999px;cursor:pointer}
+  .roles button.on{border-color:var(--orange);color:var(--orange);background:#fff}
+  .bar{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--dim);margin-bottom:6px}
+  .chat{flex:1;overflow-y:auto;border:1px solid var(--line);border-radius:12px;background:#fff;padding:12px;display:flex;flex-direction:column;gap:10px}
+  .msg{max-width:82%;padding:9px 12px;border-radius:12px;font-size:14px;line-height:1.5;white-space:pre-wrap;word-break:break-word}
+  .msg.you{align-self:flex-end;background:var(--orange);color:#fff;border-bottom-right-radius:3px}
+  .msg.ai{align-self:flex-start;background:var(--paper);color:var(--ink);border-bottom-left-radius:3px}
+  .msg.sys{align-self:center;background:transparent;color:var(--dim);font-size:12px;max-width:100%;text-align:center}
+  .in{display:flex;gap:8px;margin-top:10px}
+  .in input{flex:1;font:inherit;font-size:14px;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink)}
+  .in button{font:inherit;font-size:13px;padding:11px 16px;border:1px solid var(--orange);background:var(--orange);color:#fff;border-radius:10px;cursor:pointer}
+  .in button:disabled{opacity:.5;cursor:not-allowed}
+  .foot{font-size:11px;color:var(--dim);margin-top:8px;line-height:1.5}
+  .foot b{color:var(--green)}
+  .dots::after{content:"";animation:d 1.2s steps(4,end) infinite}
+  @keyframes d{0%{content:""}25%{content:"."}50%{content:".."}75%{content:"..."}}
+</style>
+</head>
+<body>
+<div class="lang">
+  <button data-l="zh">中</button><button data-l="en" class="on">EN</button><button data-l="th">ไทย</button>
+</div>
+<h1 data-i="title">随身口语陪练</h1>
+<div class="roles" id="roles"></div>
+<div class="bar">
+  <span id="balBox">·</span>
+  <button id="reset" style="font:inherit;font-size:11px;border:0;background:none;color:var(--dim);cursor:pointer;text-decoration:underline" data-i="reset">重新开始</button>
+</div>
+<div class="chat" id="chat"></div>
+<div class="in">
+  <input id="box" data-i-ph="ph" placeholder="用英文/中文说点什么…">
+  <button id="send" data-i="send">发送</button>
+</div>
+<p class="foot" data-i="foot"><b>怎么做到的：</b>你的每句话连同「你是…角色」的设定，一起发到我们 Cloudflare Worker，由跑在 Cloudflare 平台上的大模型回复 —— 不用外部账号、不用你自己搭服务器。按实际消耗的 token 从你钱包扣积分（最低 2 分/次）。这就是「自建、可计量」的聊天后端。</p>
+
+<script>
+(function(){
+  var I18N={
+    zh:{title:"随身口语陪练",send:"发送",reset:"重新开始",ph:"用英文/中文说点什么…",
+        thinking:"对方在想",spent:"扣 %s 积分 · 余 %s",bal:"余额 %s 积分",empty:"钱包空，先去 /buy 充值",
+        needTop:"余额不足（每次≥2积分），先去 /buy 充值",err:"出错了，稍后再试",
+        roles:{cafe:"☕ 英语·咖啡店点单",interview:"💼 英语·模拟面试",th:"🇹🇭 泰语·日常问路",free:"💬 自由聊"},
+        hi:{cafe:"（走进一家清迈的咖啡馆，店员抬头看你）Hi! What can I get for you today?",
+            interview:"（面试官微笑）Hello, thanks for coming in. Could you start by telling me about yourself?",
+            th:"（ร้านค้าริมถนน）สวัสดีค่ะ! ต้องการให้ช่วยอะไรไหมคะ?",
+            free:"嗨，我是你的语言陪练。想练哪种语言、什么场景？直接开口就行。"},
+        foot:"<b>怎么做到的：</b>你的每句话连同「你是…角色」的设定，一起发到我们 Cloudflare Worker，由跑在 Cloudflare 平台上的大模型回复 —— 不用外部账号、不用你自己搭服务器。按实际消耗的 token 从你钱包扣积分（最低 2 分/次）。这就是「自建、可计量」的聊天后端。"},
+    en:{title:"Pocket speaking partner",send:"Send",reset:"Restart",ph:"Say something in English/Chinese…",
+        thinking:"thinking",spent:"−%s credits · %s left",bal:"Balance %s credits",empty:"Wallet empty — top up at /buy",
+        needTop:"Not enough credits (≥2 each) — top up at /buy",err:"Something went wrong, try again",
+        roles:{cafe:"☕ English · Café order",interview:"💼 English · Mock interview",th:"🇹🇭 Thai · Ask directions",free:"💬 Free chat"},
+        hi:{cafe:"(You walk into a Chiang Mai café, the barista looks up) Hi! What can I get for you today?",
+            interview:"(The interviewer smiles) Hello, thanks for coming in. Could you start by telling me about yourself?",
+            th:"(ร้านค้าริมถนน) สวัสดีค่ะ! Hi, want to practice asking for directions in Thai?",
+            free:"Hi, I'm your language partner. Which language and scenario do you want to practice? Just start talking."},
+        foot:"<b>How it works:</b> Each thing you say, plus the 'you are … role' setup, goes to our Cloudflare Worker and is answered by a large model running on Cloudflare's platform — no external account, no server of your own. Credits are charged from your wallet by tokens actually used (min 2 per turn). This is our own, meterable chat backend."},
+    th:{title:"คู่ฝึกพูดพกพา",send:"ส่ง",reset:"เริ่มใหม่",ph:"พูดอะไรสักอย่าง…",
+        thinking:"กำลังคิด",spent:"−%s เครดิต · เหลือ %s",bal:"ยอด %s เครดิต",empty:"กระเป๋าว่าง — เติมที่ /buy",
+        needTop:"เครดิตไม่พอ (ครั้งละ ≥2) — เติมที่ /buy",err:"เกิดข้อผิดพลาด ลองใหม่",
+        roles:{cafe:"☕ อังกฤษ · สั่งกาแฟ",interview:"💼 อังกฤษ · สัมภาษณ์",th:"🇹🇭 ไทย · ถามทาง",free:"💬 คุยอิสระ"},
+        hi:{cafe:"(คุณเดินเข้าร้านกาแฟ) Hi! What can I get for you today?",
+            interview:"(ผู้สัมภาษณ์ยิ้ม) Hello, could you tell me about yourself?",
+            th:"สวัสดีค่ะ! อยากฝึกถามทางเป็นภาษาไทยไหมคะ?",
+            free:"สวัสดี ฉันเป็นคู่ฝึกภาษาของคุณ อยากฝึกภาษาและสถานการณ์ไหน?"},
+        foot:"<b>ทำงานอย่างไร:</b> ทุกประโยคของคุณพร้อมบทบาทถูกส่งไปยัง Cloudflare Worker และตอบโดยโมเดลใหญ่ที่รันบนแพลตฟอร์ม Cloudflare — ไม่ต้องมีบัญชีภายนอกหรือเซิร์ฟเวอร์ของคุณเอง หักเครดิตตามโทเคนที่ใช้จริง (ขั้นต่ำ 2/ครั้ง)"}
+  };
+  var SYS={
+    cafe:"You are a friendly barista in a Chiang Mai café. Speak ENGLISH. Keep replies short (1-2 sentences), stay in character, and gently help the learner: if they make a mistake, model the correct phrasing naturally. Ask follow-up questions to keep the conversation going.",
+    interview:"You are a polite job interviewer conducting a mock interview in ENGLISH. Ask one question at a time, keep it realistic and encouraging. If the candidate's English has errors, subtly rephrase correctly in your reply. Keep replies concise.",
+    th:"You are a friendly Thai local helping a learner practice THAI for asking directions and daily life. Reply mainly in simple Thai, then add a short English gloss in parentheses. Keep it short and encouraging.",
+    free:"You are a warm, patient language-practice partner. Detect the language the user writes in and reply in that language. Keep replies short and conversational, gently correcting mistakes by modeling the right phrasing. Ask a follow-up question."
+  };
+  var lang="en", role="cafe", history=[], busy=false, W=null;
+  function q(s){return document.querySelector(s);} function qa(s){return document.querySelectorAll(s);}
+  function wallet(){ var w=null; try{w=localStorage.getItem('idoris_wallet');}catch(e){}
+    if(!/^[a-f0-9]{12,40}$/.test(w||'')){ w=(crypto.randomUUID?crypto.randomUUID().replace(/-/g,''):(Date.now().toString(16)+Math.floor(Math.random()*1e12).toString(16))).slice(0,24); try{localStorage.setItem('idoris_wallet',w);}catch(e){} } return w; }
+  W=wallet();
+
+  function d(){ return I18N[lang]; }
+  function renderRoles(){
+    var r=d().roles;
+    q("#roles").innerHTML=Object.keys(r).map(function(k){
+      return '<button data-r="'+k+'" class="'+(k===role?'on':'')+'">'+r[k]+'</button>';
+    }).join("");
+    qa("#roles button").forEach(function(b){ b.onclick=function(){ role=b.getAttribute("data-r"); start(); }; });
+  }
+  function applyLang(){
+    var t=d();
+    qa("[data-i]").forEach(function(el){ var k=el.getAttribute("data-i"); if(t[k]!=null) el.innerHTML=t[k]; });
+    qa("[data-i-ph]").forEach(function(el){ var k=el.getAttribute("data-i-ph"); if(t[k]!=null) el.placeholder=t[k]; });
+    document.documentElement.lang=lang;
+    qa(".lang button").forEach(function(b){ b.classList.toggle("on", b.getAttribute("data-l")===lang); });
+    renderRoles();
+  }
+  try{ var ul=new URLSearchParams(location.search).get("lang"); if(ul&&I18N[ul]) lang=ul; }catch(e){}
+  qa(".lang button").forEach(function(b){ b.onclick=function(){ lang=b.getAttribute("data-l"); applyLang(); loadBal(); }; });
+
+  function bubble(cls,text){ var el=document.createElement("div"); el.className="msg "+cls; el.textContent=text; q("#chat").appendChild(el); q("#chat").scrollTop=q("#chat").scrollHeight; return el; }
+  function loadBal(){ fetch('/api/balance?code='+encodeURIComponent(W)).then(function(r){return r.json();}).then(function(x){
+    var n=x.remaining||0; q("#balBox").textContent=d().bal.replace("%s",n.toLocaleString())+(n<2?(" · "+d().empty):""); }).catch(function(){}); }
+
+  function start(){
+    history=[{role:"system",content:SYS[role]}];
+    q("#chat").innerHTML="";
+    bubble("ai", d().hi[role]);
+    history.push({role:"assistant",content:d().hi[role]});
+    applyLang(); loadBal();
+  }
+  async function send(){
+    if(busy) return; var text=q("#box").value.trim(); if(!text) return;
+    q("#box").value=""; bubble("you",text); history.push({role:"user",content:text});
+    busy=true; q("#send").disabled=true;
+    var wait=bubble("ai",""); wait.innerHTML='<span class="dots">'+d().thinking+'</span>';
+    try{
+      var r=await fetch('/api/chat',{method:'POST',headers:{'content-type':'application/json'},
+        body:JSON.stringify({code:W, messages:history, maxTokens:400})});
+      var x=await r.json();
+      if(!r.ok){ wait.className="msg sys"; wait.textContent=(x.error==='insufficient'||x.error==='no_wallet')?d().needTop:d().err; busy=false; q("#send").disabled=false; return; }
+      wait.className="msg ai"; wait.textContent=x.reply;
+      history.push({role:"assistant",content:x.reply});
+      q("#balBox").textContent=d().spent.replace("%s",x.spent).replace("%s",(x.remaining||0).toLocaleString());
+    }catch(e){ wait.className="msg sys"; wait.textContent=d().err; }
+    busy=false; q("#send").disabled=false; q("#box").focus();
+  }
+  q("#send").onclick=send;
+  q("#box").addEventListener("keydown",function(e){ if(e.key==="Enter"&&!e.shiftKey){ e.preventDefault(); send(); } });
+  q("#reset").onclick=start;
+
+  applyLang(); start();
+})();
+</script>
+</body>
+</html>
