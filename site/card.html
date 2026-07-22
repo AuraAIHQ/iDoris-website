@@ -46,7 +46,7 @@
       <a class="link" href="/cards" data-zh="卡片墙" data-th="บัตรทั้งหมด">Cards</a>
       <a class="link" href="/buy" data-zh="购买" data-th="ซื้อ">Buy</a>
       <a class="link" href="/friends" data-zh="我们的 IP" data-th="ตัวละคร">Doris &amp; Cherry</a>
-      <a class="link" href="https://github.com/AuraAIHQ/ai-atlas">GitHub ↗</a>
+      <a class="link" href="https://github.com/iDoris-ai/ai-atlas">GitHub ↗</a>
     </div>
     <div class="lang" role="group" aria-label="Language">
       <button class="lang-btn" data-lang="en" aria-pressed="true">EN</button>
@@ -85,7 +85,7 @@
     <div class="links">
       <a href="/cards" data-zh="卡片墙" data-th="บัตรทั้งหมด">Cards</a>
       <a href="/buy" data-zh="购买" data-th="ซื้อ">Buy</a>
-      <a href="https://github.com/AuraAIHQ/ai-atlas">ai-atlas</a>
+      <a href="https://github.com/iDoris-ai/ai-atlas">ai-atlas</a>
     </div>
   </div>
 </footer>
@@ -93,7 +93,7 @@
 <script src="/assets/i18n-v2.js"></script>
 <script>
 (function () {
-  var RAW = 'https://raw.githubusercontent.com/AuraAIHQ/ai-atlas/main/cards/';
+  var RAW = 'https://raw.githubusercontent.com/iDoris-ai/ai-atlas/main/cards/';
   var L = {
     play:   {zh:'去玩 · Playground', en:'Play · Playground', th:'เล่น · Playground'},
     principle:{zh:'原理', en:'How it works', th:'หลักการ'},
@@ -159,7 +159,7 @@
     if(!card) return;
     document.getElementById('side').innerHTML =
       '<div class="cside"><img src="'+RAW+esc(slug)+'/screenshot.png" alt="" onerror="this.style.display=\'none\'">'
-      + '<div class="foot"><a href="https://github.com/AuraAIHQ/ai-atlas/tree/main/cards/'+esc(slug)+'" target="_blank" rel="noopener">'+esc(label('source'))+'</a></div></div>';
+      + '<div class="foot"><a href="https://github.com/iDoris-ai/ai-atlas/tree/main/cards/'+esc(slug)+'" target="_blank" rel="noopener">'+esc(label('source'))+'</a></div></div>';
   }
   function renderAll(){ renderHead(); renderPlay(); renderBody(); renderSide(); }
 
