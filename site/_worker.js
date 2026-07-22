@@ -104,6 +104,10 @@ async function play(request, env) {
 // 自建聊天/生成：查钱包 → 调 Cloudflare Workers AI(env.AI) → 成功才按 token 扣积分
 // 无外部 key、无自建服务器，模型跑在 Cloudflare 平台上。C 类卡(角色扮演/生成网页等)共用此端点。
 async function chat(request, env) {
+  try { return await chatImpl(request, env); }
+  catch (err) { return json({ error: 'chat_crash', detail: String(err && err.stack || err && err.message || err) }, 500); }
+}
+async function chatImpl(request, env) {
   if (!env.ENTITLEMENTS) return json({ error: 'kv_unavailable' }, 503);
   if (!env.AI) return json({ error: 'chat_not_configured' }, 503);
   const body = await readJson(request);
