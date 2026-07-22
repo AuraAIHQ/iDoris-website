@@ -14,7 +14,7 @@ const PRICING = {
   markup: 2,                // 实际成本 ×2
   usdPerGpuSec: 0.000306,   // A10G 参考单价（把 gpu_sec 折成美元成本）
   usdPerLlmTok: 0.0000006,  // Workers AI 参考单价（把 LLM token 折成美元成本，≈$0.6/1M）
-  coeff: { image: 1, chat: 1 }, // 特殊系数：某类调高就改这里（如以后 video: 3）
+  coeff: { image: 1, chat: 1, video: 3 }, // 特殊系数：视频更吃显存/更慢，系数调高
 };
 const CHAT_MODEL_DEFAULT = '@cf/meta/llama-3.3-70b-instruct-fp8-fast'; // 当前在架，多语(中/泰/英)质量好；可用 env.CHAT_MODEL 覆盖
 // 消耗(美元) → 应扣积分 = max(底线, ceil(成本 × 倍率 × 系数 / 单价))
@@ -166,16 +166,40 @@ async function doodle(request, env) {
   return json({ image: d.image, spent, remaining: e.remaining, gpu_sec: d.gpu_sec });
 }
 
+// 自建「一句话变动画短片」：查钱包 → 调 Modal AnimateDiff endpoint(文生视频) → 成功才按 gpu 扣积分(视频系数更高)
+async function clip(request, env) {
+  if (!env.ENTITLEMENTS) return json({ error: 'kv_unavailable' }, 503);
+  if (!env.MODAL_CLIP_URL || !env.PLAY_TOKEN) return json({ error: 'clip_not_configured' }, 503);
+  const body = await readJson(request);
+  const code = String(body?.code || ''), prompt = String(body?.prompt || '').slice(0, 400);
+  if (!validWallet(code)) return json({ error: 'bad_code' }, 400);
+  const raw = await env.ENTITLEMENTS.get(`ent:${code}`);
+  if (!raw) return json({ error: 'no_wallet', message: '钱包为空，先充值' }, 404);
+  const e = JSON.parse(raw);
+  if (e.remaining < PRICING.floorCredits) return json({ error: 'insufficient', remaining: e.remaining, need: PRICING.floorCredits }, 402);
+  let r;
+  try { r = await fetch(env.MODAL_CLIP_URL, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ token: env.PLAY_TOKEN, prompt }) }); }
+  catch (err) { return json({ error: 'upstream_unreachable' }, 502); }
+  const d = await r.json().catch(() => null);
+  if (!r.ok || !d?.video) return json({ error: 'gen_failed', detail: d?.error }, 502);
+  const usdCost = (Number(d.gpu_sec) || 0) * PRICING.usdPerGpuSec;
+  const cost = creditsForUsd(usdCost, 'video');
+  const spent = Math.min(e.remaining, cost);
+  e.remaining -= spent; await env.ENTITLEMENTS.put(`ent:${code}`, JSON.stringify(e));
+  return json({ video: d.video, spent, remaining: e.remaining, gpu_sec: d.gpu_sec });
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url), p = url.pathname, m = request.method;
     if (p === '/api/chat' && m === 'POST') return chat(request, env);
+    if (p === '/api/clip' && m === 'POST') return clip(request, env);
     if (p === '/api/doodle' && m === 'POST') return doodle(request, env);
     if (p === '/api/play' && m === 'POST') return play(request, env);
     if (p === '/api/points/redeem' && m === 'POST') return redeemPoints(request, env);
     if (p === '/api/balance' && m === 'GET') return getBalance(url, env);
     if (p === '/api/redeem' && m === 'POST') return redeemCredits(request, env);
-    if (p === '/api/config' && m === 'GET') return json({ mode: 'offline+points', usdPerCredit: USD_PER_CREDIT, pointsPerCredit: POINTS_PER_CREDIT, floorCredits: PRICING.floorCredits, markup: PRICING.markup, play: !!(env.MODAL_PLAY_URL && env.PLAY_TOKEN), chat: !!env.AI, doodle: !!(env.MODAL_DOODLE_URL && env.PLAY_TOKEN) });
+    if (p === '/api/config' && m === 'GET') return json({ mode: 'offline+points', usdPerCredit: USD_PER_CREDIT, pointsPerCredit: POINTS_PER_CREDIT, floorCredits: PRICING.floorCredits, markup: PRICING.markup, play: !!(env.MODAL_PLAY_URL && env.PLAY_TOKEN), chat: !!env.AI, doodle: !!(env.MODAL_DOODLE_URL && env.PLAY_TOKEN), clip: !!(env.MODAL_CLIP_URL && env.PLAY_TOKEN) });
     if (p.startsWith('/api/')) return json({ error: 'not_found' }, 404);
     return env.ASSETS.fetch(request);
   },
