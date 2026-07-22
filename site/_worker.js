@@ -126,7 +126,7 @@ async function chatImpl(request, env) {
   const e = JSON.parse(raw);
   if (e.remaining < PRICING.floorCredits) return json({ error: 'insufficient', remaining: e.remaining, need: PRICING.floorCredits }, 402);
   const model = env.CHAT_MODEL || CHAT_MODEL_DEFAULT;
-  const maxTokens = Math.min(1024, Math.max(64, parseInt(body?.maxTokens, 10) || 512));
+  const maxTokens = Math.min(2048, Math.max(64, parseInt(body?.maxTokens, 10) || 512));
   let out;
   try { out = await env.AI.run(model, { messages: msgs, max_tokens: maxTokens }); }
   catch (err) { return json({ error: 'chat_upstream', detail: String(err && err.message || err) }, 502); }

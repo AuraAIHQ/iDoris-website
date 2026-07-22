@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en" data-lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>十分钟做个网站 · Ten-minute website · iDoris playground</title>
+<style>
+  :root{--paper:#F4F1EC;--ink:#26241f;--dim:#8a8578;--line:#d9d3c8;--orange:#FF5233;--cyan:#49C7E6;--green:#2Fae7e;--mono:ui-monospace,Menlo,monospace}
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%;background:var(--paper);color:var(--ink);font-family:var(--mono);-webkit-font-smoothing:antialiased}
+  body{padding:14px;max-width:820px;margin:0 auto}
+  .lang{position:fixed;right:10px;top:10px;display:flex;gap:4px;z-index:5}
+  .lang button{font:inherit;font-size:11px;padding:4px 8px;border:1px solid var(--line);background:#fff;color:var(--dim);border-radius:6px;cursor:pointer}
+  .lang button.on{border-color:var(--orange);color:var(--orange)}
+  h1{font-size:16px;margin:0 0 2px}
+  .sub{font-size:12px;color:var(--dim);margin:0 0 12px;line-height:1.5}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+  .chips button{font:inherit;font-size:11px;padding:6px 10px;border:1px solid var(--line);background:#fff;color:var(--dim);border-radius:999px;cursor:pointer}
+  .chips button:hover{border-color:var(--orange);color:var(--orange)}
+  .in{display:flex;gap:8px}
+  .in textarea{flex:1;font:inherit;font-size:14px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);resize:vertical;min-height:46px}
+  .go{font:inherit;font-size:14px;padding:0 18px;border:1px solid var(--orange);background:var(--orange);color:#fff;border-radius:10px;cursor:pointer;white-space:nowrap}
+  .go:disabled{opacity:.5;cursor:not-allowed}
+  .bar{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--dim);margin:10px 0 6px}
+  .bar .tabs button{font:inherit;font-size:11px;padding:4px 10px;border:1px solid var(--line);background:#fff;color:var(--dim);border-radius:6px;cursor:pointer;margin-left:4px}
+  .bar .tabs button.on{border-color:var(--orange);color:var(--orange)}
+  .stage{border:1px solid var(--line);border-radius:12px;background:#fff;overflow:hidden;min-height:420px;position:relative}
+  iframe{display:block;width:100%;height:60vh;min-height:420px;border:0;background:#fff}
+  pre.code{margin:0;padding:14px;font-size:12px;line-height:1.5;white-space:pre-wrap;word-break:break-word;max-height:60vh;overflow:auto;color:var(--ink);display:none}
+  .veil{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;background:var(--paper);color:var(--dim);font-size:13px;text-align:center;padding:20px}
+  .spin{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(244,241,236,.9);font-size:13px;color:var(--dim);z-index:2}
+  .foot{font-size:11px;color:var(--dim);margin-top:12px;line-height:1.6}
+  .foot b{color:var(--green)}
+  .dl{font-size:11px;color:var(--orange);cursor:pointer;text-decoration:underline;background:none;border:0;font-family:inherit}
+</style>
+</head>
+<body>
+<div class="lang">
+  <button data-l="zh">中</button><button data-l="en" class="on">EN</button><button data-l="th">ไทย</button>
+</div>
+<h1 data-i="title">十分钟做个网站</h1>
+<p class="sub" data-i="sub">用一句话说你想要什么网站，AI 当场生成一个能看的网页，右边直接预览。生成在我们自己的后端跑，按用量扣积分。</p>
+
+<div class="chips" id="chips"></div>
+<div class="in">
+  <textarea id="prompt" data-i-ph="ph" placeholder="想要什么网站？"></textarea>
+  <button class="go" id="go" data-i="gobtn">生成 →</button>
+</div>
+
+<div class="bar">
+  <span id="status">·</span>
+  <span class="tabs"><button id="tPrev" class="on" data-i="tabPrev">预览</button><button id="tCode" data-i="tabCode">代码</button> <button class="dl" id="dl" data-i="dl" style="display:none">下载 HTML</button></span>
+</div>
+
+<div class="stage">
+  <iframe id="frame" sandbox="allow-scripts allow-forms" title="preview"></iframe>
+  <pre class="code" id="code"></pre>
+  <div class="veil" id="veil" data-i="veil">左边说一句，点「生成」——网页会出现在这里</div>
+  <div class="spin" id="spin" style="display:none" data-i="gen">AI 正在生成网页…</div>
+</div>
+
+<p class="foot" data-i="foot"><b>怎么做到的：</b>你的描述被送到我们的 Cloudflare Worker，交给跑在 Cloudflare 平台上的大模型，让它直接吐出一整页自包含的 HTML（样式脚本都在里面）。这页 HTML 在一个<b>隔离沙箱 iframe</b> 里预览——它碰不到你的钱包和这个站的任何数据，安全。按实际 token 用量扣积分（最低 2 分）。</p>
+
+<script>
+(function(){
+  var I18N={
+    zh:{title:"十分钟做个网站",sub:"用一句话说你想要什么网站，AI 当场生成一个能看的网页，右边直接预览。生成在我们自己的后端跑，按用量扣积分。",
+        ph:"想要什么网站？例：我在清迈的民宿房源页，含照片位、价格、地图、预订按钮",gobtn:"生成 →",tabPrev:"预览",tabCode:"代码",dl:"下载 HTML",
+        veil:"左边说一句，点「生成」——网页会出现在这里",gen:"AI 正在生成网页…",done:"生成完成 · 扣 %s 积分 · 余 %s",empty:"先写一句你想要的网站",needTop:"余额不足（每次≥2积分），先去 /buy 充值",err:"出错了，稍后再试",bal:"余额 %s 积分",
+        chips:["清迈民宿房源页","个人作品集主页","小店菜单+营业时间","活动报名落地页"],
+        foot:"<b>怎么做到的：</b>你的描述被送到我们的 Cloudflare Worker，交给跑在 Cloudflare 平台上的大模型，让它直接吐出一整页自包含的 HTML（样式脚本都在里面）。这页 HTML 在一个<b>隔离沙箱 iframe</b> 里预览——它碰不到你的钱包和这个站的任何数据，安全。按实际 token 用量扣积分（最低 2 分）。"},
+    en:{title:"Ten-minute website",sub:"Describe the website you want in a sentence; AI builds a real webpage on the spot and previews it on the right. Generation runs on our own backend; credits by usage.",
+        ph:"What website? e.g. a listing page for my Chiang Mai guesthouse with photos, price, map, book button",gobtn:"Generate →",tabPrev:"Preview",tabCode:"Code",dl:"Download HTML",
+        veil:"Type on the left and hit Generate — your page appears here",gen:"AI is building the page…",done:"Done · −%s credits · %s left",empty:"Describe the website first",needTop:"Not enough credits (≥2 each) — top up at /buy",err:"Something went wrong, try again",bal:"Balance %s credits",
+        chips:["Chiang Mai guesthouse listing","Personal portfolio home","Shop menu + hours","Event signup landing"],
+        foot:"<b>How it works:</b> Your description goes to our Cloudflare Worker and a large model on Cloudflare's platform outputs a whole self-contained HTML page (styles and scripts inline). It previews inside an <b>isolated sandbox iframe</b> — it can't touch your wallet or any of this site's data. Credits by actual tokens (min 2)."},
+    th:{title:"เว็บไซต์ในสิบนาที",sub:"บอกเว็บที่อยากได้เป็นประโยคเดียว AI สร้างหน้าเว็บจริงทันที พรีวิวทางขวา สร้างบนแบ็กเอนด์ของเราเอง หักเครดิตตามการใช้",
+        ph:"อยากได้เว็บแบบไหน? เช่น หน้าที่พักในเชียงใหม่ มีรูป ราคา แผนที่ ปุ่มจอง",gobtn:"สร้าง →",tabPrev:"พรีวิว",tabCode:"โค้ด",dl:"ดาวน์โหลด HTML",
+        veil:"พิมพ์ทางซ้ายแล้วกดสร้าง — หน้าเว็บจะขึ้นตรงนี้",gen:"AI กำลังสร้างหน้าเว็บ…",done:"เสร็จ · −%s เครดิต · เหลือ %s",empty:"อธิบายเว็บก่อน",needTop:"เครดิตไม่พอ (ครั้งละ ≥2) — เติมที่ /buy",err:"เกิดข้อผิดพลาด ลองใหม่",bal:"ยอด %s เครดิต",
+        chips:["หน้าที่พักเชียงใหม่","หน้าพอร์ตโฟลิโอ","เมนูร้าน+เวลาเปิด","หน้าลงทะเบียนอีเวนต์"],
+        foot:"<b>ทำงานอย่างไร:</b> คำอธิบายถูกส่งไป Cloudflare Worker และโมเดลใหญ่บน Cloudflare สร้างหน้า HTML แบบครบในตัว พรีวิวใน <b>iframe แซนด์บ็อกซ์</b> ที่แตะกระเป๋าเงินหรือข้อมูลของเว็บนี้ไม่ได้ หักเครดิตตามโทเคนจริง (ขั้นต่ำ 2)"}
+  };
+  var SYS="You are an expert web developer. Output a COMPLETE, single self-contained HTML document for the website the user describes. Requirements: start with <!DOCTYPE html>; inline ALL CSS in a <style> tag and ALL JS in <script> tags (no external links or CDNs, they are blocked); modern, clean, responsive design; use colored gradient placeholder blocks where images would go (no external image URLs). Output ONLY the raw HTML, no markdown fences, no explanation before or after.";
+  window.__card={I18N:I18N, SYS:SYS, maxTokens:2048};
+})();
+</script>
+<script src="/play/_generate.js"></script>
+</body>
+</html>
