@@ -108,19 +108,26 @@
 
   function loadBal(){ fetch('/api/balance?code='+encodeURIComponent(W)).then(function(r){return r.json();}).then(function(x){ q("#bar").textContent=d().bal.replace("%s",(x.remaining||0).toLocaleString()); }).catch(function(){}); }
 
+  // 安全渲染：所有动态内容一律走 textContent / DOM 属性，绝不拼进 innerHTML（防 XSS）
+  function showPh(text){ q("#out").textContent=""; var el=document.createElement("div"); el.className="ph"; el.textContent=String(text==null?"":text); q("#out").appendChild(el); }
+  var IMG_OK=/^data:image\/(png|jpe?g|webp);base64,[A-Za-z0-9+/=]+$/;
+
   q("#go").onclick=async function(){
     if(busy) return;
     if(!dirty){ q("#bar").textContent=d().empty; return; }
     busy=true; q("#go").disabled=true;
-    q("#out").innerHTML='<div class="spin">🎨<span>'+d().drawing+'</span></div>';
+    q("#out").textContent=""; var sp=document.createElement("div"); sp.className="spin"; sp.textContent="🎨 "+d().drawing; q("#out").appendChild(sp);
     try{
       var r=await fetch('/api/doodle',{method:'POST',headers:{'content-type':'application/json'},
         body:JSON.stringify({code:W, prompt:q("#prompt").value.slice(0,400), image:pad.toDataURL('image/png')})});
       var x=await r.json();
-      if(!r.ok){ q("#out").innerHTML='<div class="ph">'+((x.error==='insufficient'||x.error==='no_wallet')?d().needTop:(x.detail||d().err))+'</div>'; busy=false; q("#go").disabled=false; loadBal(); return; }
-      q("#out").innerHTML='<img src="'+x.image+'" alt="result">';
-      q("#bar").textContent=d().spent.replace("%s",x.spent).replace("%s",(x.remaining||0).toLocaleString());
-    }catch(e){ q("#out").innerHTML='<div class="ph">'+d().err+'</div>'; }
+      if(!r.ok){ showPh((x.error==='insufficient'||x.error==='no_wallet')?d().needTop:(x.detail||d().err)); busy=false; q("#go").disabled=false; loadBal(); return; }
+      // x.image 必须是合法 data:image 才渲染；用 DOM 属性赋值，不经 innerHTML
+      if(typeof x.image==="string" && IMG_OK.test(x.image)){
+        q("#out").textContent=""; var im=document.createElement("img"); im.src=x.image; im.alt="result"; q("#out").appendChild(im);
+        q("#bar").textContent=d().spent.replace("%s",x.spent).replace("%s",(x.remaining||0).toLocaleString());
+      } else { showPh(d().err); }
+    }catch(e){ showPh(d().err); }
     busy=false; q("#go").disabled=false;
   };
 
