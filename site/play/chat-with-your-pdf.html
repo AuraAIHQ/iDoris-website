@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en" data-lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>和你的资料对话 · Chat with your PDF · iDoris playground</title>
+<style>
+  :root{--paper:#F4F1EC;--ink:#26241f;--dim:#8a8578;--line:#d9d3c8;--orange:#FF5233;--cyan:#49C7E6;--green:#2Fae7e;--mono:ui-monospace,Menlo,monospace}
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%;background:var(--paper);color:var(--ink);font-family:var(--mono);-webkit-font-smoothing:antialiased}
+  body{padding:14px;max-width:680px;margin:0 auto;display:flex;flex-direction:column;min-height:100vh}
+  .lang{position:fixed;right:10px;top:10px;display:flex;gap:4px;z-index:5}
+  .lang button{font:inherit;font-size:11px;padding:4px 8px;border:1px solid var(--line);background:#fff;color:var(--dim);border-radius:6px;cursor:pointer}
+  .lang button.on{border-color:var(--orange);color:var(--orange)}
+  h1{font-size:16px;margin:0 0 2px}
+  .sub{font-size:12px;color:var(--dim);margin:0 0 12px;line-height:1.5}
+  .load{border:1px solid var(--line);border-radius:12px;background:#fff;padding:12px;margin-bottom:10px}
+  .load textarea{width:100%;font:inherit;font-size:13px;padding:9px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);resize:vertical;min-height:60px}
+  .load .row{display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap}
+  .load label.file{font:inherit;font-size:12px;padding:8px 12px;border:1px solid var(--line);border-radius:8px;cursor:pointer;color:var(--dim)}
+  .load label.file:hover{border-color:var(--orange);color:var(--orange)}
+  .load button{font:inherit;font-size:13px;padding:8px 16px;border:1px solid var(--orange);background:var(--orange);color:#fff;border-radius:8px;cursor:pointer}
+  .load button:disabled{opacity:.5;cursor:not-allowed}
+  .idx{font-size:11px;color:var(--dim);margin-top:6px;min-height:15px}
+  .idx b{color:var(--green)}
+  .chat{flex:1;overflow-y:auto;border:1px solid var(--line);border-radius:12px;background:#fff;padding:12px;display:flex;flex-direction:column;gap:10px;min-height:220px}
+  .msg{max-width:86%;padding:9px 12px;border-radius:12px;font-size:14px;line-height:1.55;white-space:pre-wrap;word-break:break-word}
+  .msg.you{align-self:flex-end;background:var(--orange);color:#fff;border-bottom-right-radius:3px}
+  .msg.ai{align-self:flex-start;background:var(--paper);color:var(--ink);border-bottom-left-radius:3px}
+  .msg.sys{align-self:center;color:var(--dim);font-size:12px;text-align:center}
+  .src{align-self:flex-start;max-width:86%;font-size:11px;color:var(--dim)}
+  .src details{border:1px solid var(--line);border-radius:8px;background:var(--paper);padding:4px 10px}
+  .src summary{cursor:pointer}
+  .src .chunk{border-top:1px dashed var(--line);padding:6px 0;white-space:pre-wrap}
+  .in{display:flex;gap:8px;margin-top:10px}
+  .in input{flex:1;font:inherit;font-size:14px;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink)}
+  .in input:disabled{opacity:.6}
+  .in button{font:inherit;font-size:13px;padding:11px 16px;border:1px solid var(--orange);background:var(--orange);color:#fff;border-radius:10px;cursor:pointer}
+  .in button:disabled{opacity:.5;cursor:not-allowed}
+  .bar{font-size:11px;color:var(--dim);margin:6px 0}
+  .foot{font-size:11px;color:var(--dim);margin-top:10px;line-height:1.6}
+  .foot b{color:var(--green)}
+  .dots::after{content:"";animation:d 1.2s steps(4,end) infinite}
+  @keyframes d{0%{content:""}25%{content:"."}50%{content:".."}75%{content:"..."}}
+</style>
+</head>
+<body>
+<div class="lang">
+  <button data-l="zh">中</button><button data-l="en" class="on">EN</button><button data-l="th">ไทย</button>
+</div>
+<h1 data-i="title">和你的资料对话</h1>
+<p class="sub" data-i="sub">上传一个 PDF 或贴一段文字，它切块、算向量、建索引；你提问时它先找出最相关的几段，再据此回答——这就是 RAG。全程在我们自己的后端跑。</p>
+
+<div class="load">
+  <textarea id="doc" data-i-ph="dph" placeholder="把文字贴这里，或选一个 PDF / .txt 文件 ↓"></textarea>
+  <div class="row">
+    <label class="file"><span data-i="pick">📎 选文件 (PDF/txt)</span><input id="file" type="file" accept=".pdf,.txt,.md,text/plain" style="display:none"></label>
+    <span id="fname" style="font-size:11px;color:var(--dim)"></span>
+    <button id="build" data-i="build">建立索引</button>
+    <span id="bal" style="font-size:11px;color:var(--dim);margin-left:auto"></span>
+  </div>
+  <div class="idx" id="idx"></div>
+</div>
+
+<div class="chat" id="chat"></div>
+<div class="in">
+  <input id="q" data-i-ph="qph" placeholder="先建索引，再就资料提问…" disabled>
+  <button id="send" data-i="send" disabled>问</button>
+</div>
+<div class="bar" id="status">·</div>
+
+<p class="foot" data-i="foot"><b>怎么做到的（RAG）：</b>你的文档被切成许多小段，每段用一个嵌入模型（bge-m3，我们后端跑）换成一串「意思坐标」（向量）存在你浏览器里。你提问时，问题也变成向量，在浏览器里跟每段算「像不像」（余弦相似度），挑出最相关的几段，连同你的问题一起交给大模型作答——所以它只据你给的资料回答，不是瞎编。嵌入不额外收费，只有生成答案按 token 从钱包扣（最低 2 分）。文档不离开你的浏览器与我们的推理后端。</p>
+
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+<script>
+(function(){
+  var I18N={
+    zh:{title:"和你的资料对话",sub:"上传一个 PDF 或贴一段文字，它切块、算向量、建索引；你提问时它先找出最相关的几段，再据此回答——这就是 RAG。全程在我们自己的后端跑。",
+        dph:"把文字贴这里，或选一个 PDF / .txt 文件 ↓",pick:"📎 选文件 (PDF/txt)",build:"建立索引",qph:"先建索引，再就资料提问…",send:"问",
+        reading:"正在读取文件…",chunking:"切块中…",embedding:"建索引中…（%s 段）",indexed:"✅ 已索引 %s 段，开始提问吧",noDoc:"先贴文字或选文件",empty:"文档是空的",
+        thinking:"在资料里找…",bal:"余额 %s",spent:"扣 %s 积分 · 余 %s",needTop:"余额不足（每次≥2积分），先去 /buy 充值",err:"出错了，稍后再试",srcLabel:"参考了这 %s 段 ↓",noHit:"没找到相关内容，试试换个问法",
+        foot:"<b>怎么做到的（RAG）：</b>你的文档被切成许多小段，每段用一个嵌入模型（bge-m3，我们后端跑）换成一串「意思坐标」（向量）存在你浏览器里。你提问时，问题也变成向量，在浏览器里跟每段算「像不像」（余弦相似度），挑出最相关的几段，连同你的问题一起交给大模型作答——所以它只据你给的资料回答，不是瞎编。嵌入不额外收费，只有生成答案按 token 从钱包扣（最低 2 分）。文档不离开你的浏览器与我们的推理后端。"},
+    en:{title:"Chat with your document",sub:"Upload a PDF or paste text; it chunks, embeds, and indexes. When you ask, it finds the most relevant passages first, then answers from them — that's RAG. All on our own backend.",
+        dph:"Paste text here, or pick a PDF / .txt file ↓",pick:"📎 Pick file (PDF/txt)",build:"Build index",qph:"Build the index, then ask about the doc…",send:"Ask",
+        reading:"Reading file…",chunking:"Chunking…",embedding:"Indexing… (%s chunks)",indexed:"✅ Indexed %s chunks — ask away",noDoc:"Paste text or pick a file first",empty:"The document is empty",
+        thinking:"searching the doc…",bal:"Balance %s",spent:"−%s credits · %s left",needTop:"Not enough credits (≥2 each) — top up at /buy",err:"Something went wrong, try again",srcLabel:"Used these %s passages ↓",noHit:"No relevant passage found — try rephrasing",
+        foot:"<b>How it works (RAG):</b> Your document is split into small chunks; each is turned into a string of 'meaning coordinates' (a vector) by an embedding model (bge-m3, on our backend) and kept in your browser. Your question also becomes a vector; the browser measures how similar it is (cosine) to each chunk, picks the most relevant, and sends those plus your question to the model — so it answers from your document, not made up. Embedding is free; only the answer is charged by tokens (min 2). The document never leaves your browser and our inference backend."},
+    th:{title:"คุยกับเอกสารของคุณ",sub:"อัปโหลด PDF หรือวางข้อความ ระบบจะแบ่งท่อน คำนวณเวกเตอร์ ทำดัชนี เมื่อถามจะหาท่อนที่เกี่ยวข้องที่สุดก่อนแล้วตอบจากตรงนั้น — นี่คือ RAG รันบนแบ็กเอนด์ของเราเอง",
+        dph:"วางข้อความที่นี่ หรือเลือกไฟล์ PDF / .txt ↓",pick:"📎 เลือกไฟล์",build:"สร้างดัชนี",qph:"สร้างดัชนีก่อน แล้วถามเกี่ยวกับเอกสาร…",send:"ถาม",
+        reading:"กำลังอ่านไฟล์…",chunking:"กำลังแบ่งท่อน…",embedding:"กำลังทำดัชนี… (%s ท่อน)",indexed:"✅ ทำดัชนี %s ท่อนแล้ว ถามได้เลย",noDoc:"วางข้อความหรือเลือกไฟล์ก่อน",empty:"เอกสารว่าง",
+        thinking:"กำลังค้นในเอกสาร…",bal:"ยอด %s",spent:"−%s เครดิต · เหลือ %s",needTop:"เครดิตไม่พอ (ครั้งละ ≥2) — เติมที่ /buy",err:"เกิดข้อผิดพลาด ลองใหม่",srcLabel:"อ้างอิง %s ท่อนนี้ ↓",noHit:"ไม่พบท่อนที่เกี่ยวข้อง ลองเปลี่ยนคำถาม",
+        foot:"<b>ทำงานอย่างไร (RAG):</b> เอกสารถูกแบ่งเป็นท่อนเล็ก ๆ แต่ละท่อนแปลงเป็นเวกเตอร์ด้วยโมเดล embedding (bge-m3 บนแบ็กเอนด์เรา) เก็บในเบราว์เซอร์ คำถามก็กลายเป็นเวกเตอร์ เบราว์เซอร์วัดความคล้าย (cosine) เลือกท่อนที่เกี่ยวข้องที่สุดส่งให้โมเดลตอบ จึงตอบจากเอกสารจริง embedding ฟรี คิดเฉพาะคำตอบตามโทเคน (ขั้นต่ำ 2)"}
+  };
+  var lang="en", W=null, chunks=[], vecs=[], busy=false, history=[];
+  function q(s){return document.querySelector(s);} function qa(s){return document.querySelectorAll(s);}
+  function d(){ return I18N[lang]||I18N.en; }
+  function wallet(){ var w=null; try{w=localStorage.getItem('idoris_wallet');}catch(e){}
+    if(!/^[a-f0-9]{12,40}$/.test(w||'')){ w=(crypto.randomUUID?crypto.randomUUID().replace(/-/g,''):(Date.now().toString(16)+Math.floor(Math.random()*1e12).toString(16))).slice(0,24); try{localStorage.setItem('idoris_wallet',w);}catch(e){} } return w; }
+  W=wallet();
+  try{ var ul=new URLSearchParams(location.search).get("lang"); if(ul&&I18N[ul]) lang=ul; }catch(e){}
+  if(window.pdfjsLib){ pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js"; }
+
+  function applyLang(){ var t=d();
+    qa("[data-i]").forEach(function(el){ var k=el.getAttribute("data-i"); if(t[k]!=null) el.innerHTML=t[k]; });
+    qa("[data-i-ph]").forEach(function(el){ var k=el.getAttribute("data-i-ph"); if(t[k]!=null) el.placeholder=t[k]; });
+    document.documentElement.lang=lang;
+    qa(".lang button").forEach(function(b){ b.classList.toggle("on", b.getAttribute("data-l")===lang); });
+  }
+  qa(".lang button").forEach(function(b){ b.onclick=function(){ lang=b.getAttribute("data-l"); applyLang(); loadBal(); }; });
+  function loadBal(){ fetch('/api/balance?code='+encodeURIComponent(W)).then(function(r){return r.json();}).then(function(x){ q("#bal").textContent=d().bal.replace("%s",(x.remaining||0).toLocaleString()); }).catch(function(){}); }
+
+  // ---- 读文件 ----
+  q("#file").addEventListener("change", async function(e){
+    var f=e.target.files[0]; if(!f) return;
+    q("#fname").textContent=f.name; q("#idx").textContent=d().reading;
+    try{
+      if(/\.pdf$/i.test(f.name)){
+        var buf=await f.arrayBuffer();
+        var pdf=await pdfjsLib.getDocument({data:buf}).promise;
+        var txt="";
+        for(var i=1;i<=pdf.numPages;i++){ var pg=await pdf.getPage(i); var c=await pg.getTextContent(); txt+=c.items.map(function(it){return it.str;}).join(" ")+"\n"; }
+        q("#doc").value=txt.trim();
+      } else {
+        q("#doc").value=(await f.text()).trim();
+      }
+      q("#idx").textContent="";
+    }catch(err){ q("#idx").textContent=d().err; }
+  });
+
+  function chunkText(t){
+    t=t.replace(/\s+\n/g,"\n").trim();
+    var paras=t.split(/\n{2,}/), out=[], cur="";
+    var CAP=700;
+    paras.forEach(function(p){
+      p=p.trim(); if(!p) return;
+      if((cur+" "+p).length<=CAP){ cur=cur?cur+" "+p:p; }
+      else { if(cur) out.push(cur); if(p.length<=CAP){ cur=p; } else { for(var i=0;i<p.length;i+=CAP){ out.push(p.slice(i,i+CAP)); } cur=""; } }
+    });
+    if(cur) out.push(cur);
+    return out.slice(0,100);
+  }
+  function norm(v){ var s=0; for(var i=0;i<v.length;i++) s+=v[i]*v[i]; s=Math.sqrt(s)||1; return v.map(function(x){return x/s;}); }
+  function dot(a,b){ var s=0; for(var i=0;i<a.length;i++) s+=a[i]*b[i]; return s; }
+
+  q("#build").onclick=async function(){
+    if(busy) return;
+    var text=(q("#doc").value||"").trim();
+    if(!text){ q("#idx").textContent=d().noDoc; return; }
+    busy=true; q("#build").disabled=true;
+    chunks=chunkText(text);
+    if(!chunks.length){ q("#idx").textContent=d().empty; busy=false; q("#build").disabled=false; return; }
+    q("#idx").textContent=d().embedding.replace("%s",chunks.length);
+    try{
+      var r=await fetch('/api/embed',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({code:W,texts:chunks})});
+      var x=await r.json();
+      if(!r.ok||!x.vectors){ q("#idx").textContent=(x.error==='insufficient'||x.error==='no_wallet')?d().needTop:d().err; busy=false; q("#build").disabled=false; return; }
+      vecs=x.vectors.map(norm);
+      q("#idx").innerHTML=d().indexed.replace("%s","<b>"+chunks.length+"</b>");
+      q("#q").disabled=false; q("#send").disabled=false; history=[];
+      q("#chat").textContent="";
+    }catch(e){ q("#idx").textContent=d().err; }
+    busy=false; q("#build").disabled=false;
+  };
+
+  function bubble(cls,text){ var el=document.createElement("div"); el.className="msg "+cls; el.textContent=text; q("#chat").appendChild(el); q("#chat").scrollTop=q("#chat").scrollHeight; return el; }
+  function showSources(items){
+    var wrap=document.createElement("div"); wrap.className="src";
+    var det=document.createElement("details"); var sum=document.createElement("summary");
+    sum.textContent=d().srcLabel.replace("%s",items.length); det.appendChild(sum);
+    items.forEach(function(t){ var c=document.createElement("div"); c.className="chunk"; c.textContent=t; det.appendChild(c); });
+    wrap.appendChild(det); q("#chat").appendChild(wrap); q("#chat").scrollTop=q("#chat").scrollHeight;
+  }
+
+  async function ask(){
+    if(busy||!vecs.length) return;
+    var text=(q("#q").value||"").trim(); if(!text) return;
+    q("#q").value=""; bubble("you",text);
+    busy=true; q("#send").disabled=true; q("#q").disabled=true;
+    var wait=bubble("ai",""); wait.innerHTML='<span class="dots">'+d().thinking+'</span>';
+    try{
+      // 1) 问题嵌入
+      var er=await fetch('/api/embed',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({code:W,texts:[text]})});
+      var ex=await er.json();
+      if(!er.ok||!ex.vectors){ wait.className="msg sys"; wait.textContent=(ex.error==='insufficient'||ex.error==='no_wallet')?d().needTop:d().err; busy=false; q("#send").disabled=false; q("#q").disabled=false; return; }
+      var qv=norm(ex.vectors[0]);
+      // 2) 余弦检索 top-4
+      var scored=vecs.map(function(v,i){ return {i:i, s:dot(qv,v)}; }).sort(function(a,b){return b.s-a.s;});
+      var top=scored.slice(0,4).filter(function(o){return o.s>0.2;});
+      if(!top.length) top=scored.slice(0,3);
+      var ctx=top.map(function(o,n){ return "["+(n+1)+"] "+chunks[o.i]; }).join("\n\n");
+      // 3) 交给 LLM 据 context 作答
+      var sys="You are a helpful assistant. Answer the user's question using ONLY the context passages provided. If the answer is not in the context, say you couldn't find it in the document. Reply in the user's language. Be concise. Context:\n\n"+ctx;
+      var msgs=history.concat([{role:"system",content:sys},{role:"user",content:text}]);
+      var r=await fetch('/api/chat',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({code:W,messages:msgs,maxTokens:500})});
+      var x=await r.json();
+      if(!r.ok){ wait.className="msg sys"; wait.textContent=(x.error==='insufficient'||x.error==='no_wallet')?d().needTop:d().err; busy=false; q("#send").disabled=false; q("#q").disabled=false; return; }
+      wait.className="msg ai"; wait.textContent=x.reply;
+      history.push({role:"user",content:text}); history.push({role:"assistant",content:x.reply});
+      if(history.length>8) history=history.slice(-8);
+      showSources(top.map(function(o){return chunks[o.i];}));
+      q("#status").textContent=d().spent.replace("%s",x.spent).replace("%s",(x.remaining||0).toLocaleString());
+    }catch(e){ wait.className="msg sys"; wait.textContent=d().err; }
+    busy=false; q("#send").disabled=false; q("#q").disabled=false; q("#q").focus();
+  }
+  q("#send").onclick=ask;
+  q("#q").addEventListener("keydown",function(e){ if(e.key==="Enter"){ e.preventDefault(); ask(); } });
+
+  applyLang(); loadBal();
+})();
+</script>
+</body>
+</html>
