@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh" data-lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>教它认猫狗 · Teach cat or dog · iDoris playground</title>
+<style>
+  :root{--paper:#F4F1EC;--ink:#26241f;--dim:#8a8578;--line:#d9d3c8;--orange:#FF5233;--cyan:#49C7E6;--green:#2Fae7e;--mono:ui-monospace,Menlo,monospace}
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%;background:var(--paper);color:var(--ink);font-family:var(--mono);-webkit-font-smoothing:antialiased}
+  body{padding:14px;max-width:640px;margin:0 auto}
+  .lang{position:fixed;right:10px;top:10px;display:flex;gap:4px;z-index:5}
+  .lang button{font:inherit;font-size:11px;padding:4px 8px;border:1px solid var(--line);background:#fff;color:var(--dim);border-radius:6px;cursor:pointer}
+  .lang button.on{border-color:var(--orange);color:var(--orange)}
+  h1{font-size:16px;margin:0 0 2px}
+  .sub{font-size:12px;color:var(--dim);margin:0 0 12px;line-height:1.5}
+  .stage{position:relative;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#000;aspect-ratio:4/3}
+  video{width:100%;height:100%;object-fit:cover;display:block;transform:scaleX(-1)}
+  .veil{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;background:var(--paper);color:var(--dim);font-size:13px;text-align:center;padding:20px}
+  .pred{position:absolute;left:0;right:0;bottom:0;padding:10px 12px;background:linear-gradient(0deg,rgba(0,0,0,.72),transparent);color:#fff}
+  .pred .lab{font-size:20px;font-weight:600;letter-spacing:.02em;min-height:26px}
+  .pred .bar{height:6px;border-radius:3px;background:rgba(255,255,255,.25);overflow:hidden;margin-top:6px}
+  .pred .bar>i{display:block;height:100%;width:0;background:var(--cyan);transition:width .15s}
+  .row{display:flex;gap:10px;margin-top:12px}
+  .teach{flex:1;border:1px solid var(--line);border-radius:10px;background:#fff;padding:12px;text-align:center}
+  .teach b{display:block;font-size:15px;margin-bottom:8px}
+  .teach .cnt{font-size:11px;color:var(--dim);margin-bottom:8px}
+  button.cap{font:inherit;font-size:12px;width:100%;padding:9px;border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:8px;cursor:pointer}
+  button.cap:hover:not(:disabled){border-color:var(--orange);color:var(--orange)}
+  button.cap:active{transform:translateY(1px)}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  .tools{display:flex;gap:8px;margin-top:12px;align-items:center;flex-wrap:wrap}
+  .tools button{font:inherit;font-size:11px;padding:7px 12px;border:1px solid var(--line);background:#fff;color:var(--dim);border-radius:6px;cursor:pointer}
+  .tools button:hover:not(:disabled){border-color:var(--orange);color:var(--orange)}
+  .start{font-size:13px!important;padding:10px 18px!important;border-color:var(--orange)!important;color:#fff!important;background:var(--orange)!important}
+  .foot{font-size:11px;color:var(--dim);margin-top:12px;line-height:1.6}
+  .foot b{color:var(--green)}
+</style>
+</head>
+<body>
+<div class="lang">
+  <button data-l="zh" class="on">中</button><button data-l="en">EN</button><button data-l="th">ไทย</button>
+</div>
+
+<h1 data-i="title">教它认猫狗（也能认任何两样东西）</h1>
+<p class="sub" data-i="sub">给「A」拍十几张、给「B」拍十几张，它当场就学会分辨。全程在你自己的浏览器里跑，照片不上传、不联网出去。</p>
+
+<div class="stage">
+  <video id="v" autoplay playsinline muted></video>
+  <div class="veil" id="veil">
+    <div data-i="need">点下面开启摄像头，就可以开始教它了</div>
+    <button class="cap start" id="startBtn" data-i="start">▶ 开启摄像头</button>
+    <div id="loadMsg" style="display:none" data-i="loading">正在加载识别模型…（约几秒，只需一次）</div>
+  </div>
+  <div class="pred" id="predBox" style="display:none">
+    <div class="lab" id="predLab">—</div>
+    <div class="bar"><i id="predBar"></i></div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="teach">
+    <b>🅰 <span id="nameA">A（如：猫）</span></b>
+    <div class="cnt"><span id="cntA">0</span> <span data-i="shots">张示例</span></div>
+    <button class="cap" data-cls="0" disabled data-i="capA">拍一张给 A</button>
+  </div>
+  <div class="teach">
+    <b>🅱 <span id="nameB">B（如：狗）</span></b>
+    <div class="cnt"><span id="cntB">0</span> <span data-i="shots">张示例</span></div>
+    <button class="cap" data-cls="1" disabled data-i="capB">拍一张给 B</button>
+  </div>
+</div>
+
+<div class="tools">
+  <button id="holdA" disabled data-i="holdA">按住连拍 A</button>
+  <button id="holdB" disabled data-i="holdB">按住连拍 B</button>
+  <button id="reset" disabled data-i="reset">清空重教</button>
+</div>
+
+<p class="foot" data-i="foot"><b>怎么做到的：</b>MobileNet（一个见过百万张图的现成视觉模型）把每帧画面榨成一串数字，你拍的示例被记进一个小分类器；识别时比对当前画面更像哪一类。这就是「迁移学习」——站在大模型肩上，几十张就够。<b>不占积分、不花算力钱</b>，因为它整个跑在你这台设备的浏览器里。</p>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.1/dist/mobilenet.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/knn-classifier@1.2.5/dist/knn-classifier.min.js"></script>
+<script>
+(function(){
+  var I18N={
+    zh:{title:"教它认猫狗（也能认任何两样东西）",sub:"给「A」拍十几张、给「B」拍十几张，它当场就学会分辨。全程在你自己的浏览器里跑，照片不上传、不联网出去。",
+        need:"点下面开启摄像头，就可以开始教它了",start:"▶ 开启摄像头",loading:"正在加载识别模型…（约几秒，只需一次）",
+        shots:"张示例",capA:"拍一张给 A",capB:"拍一张给 B",holdA:"按住连拍 A",holdB:"按住连拍 B",reset:"清空重教",
+        nameA:"A（如：猫）",nameB:"B（如：狗）",
+        foot:"<b>怎么做到的：</b>MobileNet（一个见过百万张图的现成视觉模型）把每帧画面榨成一串数字，你拍的示例被记进一个小分类器；识别时比对当前画面更像哪一类。这就是「迁移学习」——站在大模型肩上，几十张就够。<b>不占积分、不花算力钱</b>，因为它整个跑在你这台设备的浏览器里。",
+        needBoth:"两边都先拍几张（各 5 张以上更稳）",teachMore:"多拍几张会更准",nocam:"打不开摄像头：请在弹窗里允许，或换用支持的浏览器。"},
+    en:{title:"Teach it cat vs dog (or any two things)",sub:"Snap a dozen shots for A, a dozen for B — it learns to tell them apart on the spot. Everything runs in your own browser; photos are never uploaded.",
+        need:"Tap below to turn on the camera and start teaching",start:"▶ Start camera",loading:"Loading the vision model… (a few seconds, once only)",
+        shots:"examples",capA:"Snap one for A",capB:"Snap one for B",holdA:"Hold to burst A",holdB:"Hold to burst B",reset:"Clear & retrain",
+        nameA:"A (e.g. cat)",nameB:"B (e.g. dog)",
+        foot:"<b>How it works:</b> MobileNet (a ready-made vision model that has seen millions of images) squeezes each frame into numbers; your examples go into a tiny classifier, and recognition compares the current frame to each class. That's transfer learning — standing on a big model's shoulders, a few dozen shots are enough. <b>No credits, no compute cost</b>, because it all runs in your device's browser.",
+        needBoth:"Give both sides a few shots first (5+ each is steadier)",teachMore:"A few more shots will sharpen it",nocam:"Can't open the camera: allow it in the popup, or try a supported browser."},
+    th:{title:"สอนให้มันแยกแมวกับหมา (หรือสองสิ่งใดก็ได้)",sub:"ถ่ายให้ A สักสิบกว่าภาพ ให้ B สักสิบกว่าภาพ มันเรียนรู้ที่จะแยกได้ทันที ทุกอย่างรันในเบราว์เซอร์ของคุณเอง ภาพไม่ถูกอัปโหลด",
+        need:"แตะด้านล่างเพื่อเปิดกล้องแล้วเริ่มสอน",start:"▶ เปิดกล้อง",loading:"กำลังโหลดโมเดล… (ไม่กี่วินาที ครั้งเดียว)",
+        shots:"ตัวอย่าง",capA:"ถ่ายให้ A",capB:"ถ่ายให้ B",holdA:"กดค้างถ่ายรัว A",holdB:"กดค้างถ่ายรัว B",reset:"ล้างแล้วสอนใหม่",
+        nameA:"A (เช่น แมว)",nameB:"B (เช่น หมา)",
+        foot:"<b>ทำงานอย่างไร:</b> MobileNet (โมเดลภาพสำเร็จรูปที่เคยเห็นภาพนับล้าน) บีบแต่ละเฟรมเป็นตัวเลข ตัวอย่างของคุณเข้าไปในตัวจำแนกเล็ก ๆ แล้วเทียบว่าเฟรมปัจจุบันคล้ายคลาสไหน นี่คือ transfer learning ใช้ไม่กี่สิบภาพก็พอ <b>ไม่ใช้เครดิต ไม่มีค่าประมวลผล</b> เพราะรันในเบราว์เซอร์ของเครื่องคุณทั้งหมด",
+        needBoth:"ถ่ายทั้งสองฝั่งก่อน (ฝั่งละ 5+ ภาพจะนิ่งกว่า)",teachMore:"ถ่ายเพิ่มอีกนิดจะแม่นขึ้น",nocam:"เปิดกล้องไม่ได้: อนุญาตในป๊อปอัป หรือลองเบราว์เซอร์ที่รองรับ"}
+  };
+  var LABELS={0:{zh:"🅰",en:"A",th:"A"},1:{zh:"🅱",en:"B",th:"B"}};
+  var lang="zh";
+  function q(s){return document.querySelector(s);} function qa(s){return document.querySelectorAll(s);}
+  function applyLang(){
+    var d=I18N[lang];
+    qa("[data-i]").forEach(function(el){ var k=el.getAttribute("data-i"); if(d[k]!=null) el.innerHTML=d[k]; });
+    q("#nameA").textContent=d.nameA; q("#nameB").textContent=d.nameB;
+    document.documentElement.lang=lang;
+    qa(".lang button").forEach(function(b){ b.classList.toggle("on", b.getAttribute("data-l")===lang); });
+  }
+  // 支持父页面通过 ?lang= 传入
+  try{ var ul=new URLSearchParams(location.search).get("lang"); if(ul&&I18N[ul]) lang=ul; }catch(e){}
+  qa(".lang button").forEach(function(b){ b.onclick=function(){ lang=b.getAttribute("data-l"); applyLang(); }; });
+  applyLang();
+
+  var video=q("#v"), veil=q("#veil"), startBtn=q("#startBtn"), loadMsg=q("#loadMsg");
+  var predBox=q("#predBox"), predLab=q("#predLab"), predBar=q("#predBar");
+  var counts=[0,0], net=null, knn=null, running=false;
+
+  function setEnabled(on){
+    qa("button.cap[data-cls]").forEach(function(b){ b.disabled=!on; });
+    q("#holdA").disabled=!on; q("#holdB").disabled=!on; q("#reset").disabled=!on;
+  }
+  function activation(){ return net.infer(video, true); } // conv embedding
+  function addExample(cls){
+    if(!net||!knn) return;
+    var a=activation(); knn.addExample(a, cls); a.dispose();
+    counts[cls]++; q(cls===0?"#cntA":"#cntB").textContent=counts[cls];
+  }
+  async function loop(){
+    if(!running) return;
+    if(knn.getNumClasses()>0 && counts[0]>0 && counts[1]>0){
+      var a=activation();
+      try{
+        var r=await knn.predictClass(a, 5);
+        var conf=r.confidences[r.label]||0;
+        var name=(counts[0]&&counts[1])? (r.label==="0"?I18N[lang].nameA:I18N[lang].nameB) : "";
+        predLab.textContent=(r.label==="0"?"🅰 ":"🅱 ")+name+"  "+Math.round(conf*100)+"%";
+        predBar.style.width=Math.round(conf*100)+"%";
+      }catch(e){}
+      a.dispose();
+    }else{
+      predLab.textContent=I18N[lang].needBoth; predBar.style.width="0%";
+    }
+    await tf.nextFrame(); requestAnimationFrame(loop);
+  }
+  async function start(){
+    loadMsg.style.display="block"; startBtn.style.display="none";
+    try{
+      var stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user"},audio:false});
+      video.srcObject=stream;
+      await new Promise(function(res){ video.onloadedmetadata=function(){ video.play(); res(); }; });
+    }catch(e){ veil.innerHTML='<div style="color:#c0392b">'+I18N[lang].nocam+'</div>'; return; }
+    knn=knnClassifier.create();
+    net=await mobilenet.load({version:2,alpha:0.5});
+    veil.style.display="none"; predBox.style.display="block";
+    setEnabled(true); running=true; loop();
+  }
+  startBtn.onclick=start;
+
+  qa("button.cap[data-cls]").forEach(function(b){
+    b.onclick=function(){ addExample(parseInt(b.getAttribute("data-cls"),10)); };
+  });
+  // 按住连拍
+  function holdBind(btn, cls){
+    var timer=null;
+    function go(){ addExample(cls); }
+    function on(e){ e.preventDefault(); go(); timer=setInterval(go,180); }
+    function off(){ if(timer){clearInterval(timer);timer=null;} }
+    btn.addEventListener("mousedown",on); btn.addEventListener("touchstart",on,{passive:false});
+    ["mouseup","mouseleave","touchend","touchcancel"].forEach(function(ev){ btn.addEventListener(ev,off); });
+  }
+  holdBind(q("#holdA"),0); holdBind(q("#holdB"),1);
+  q("#reset").onclick=function(){
+    if(knn){ knn.clearAllClasses(); } counts=[0,0];
+    q("#cntA").textContent="0"; q("#cntB").textContent="0";
+    predLab.textContent="—"; predBar.style.width="0%";
+  };
+})();
+</script>
+</body>
+</html>

@@ -104,6 +104,7 @@
     open:   {zh:'在新窗口打开 playground', en:'Open playground in a new tab', th:'เปิด playground ในแท็บใหม่'},
     launch: {zh:'开始玩', en:'Launch', th:'เริ่มเล่น'},
     embedhint:{zh:'下面直接在本页体验（由模型驱动，自建推理正在路上）', en:'Try it right here on this page (model-powered; self-hosted inference on the way)', th:'ลองได้บนหน้านี้เลย (ขับเคลื่อนด้วยโมเดล; การรันเองกำลังจะมา)'},
+    selfhosted:{zh:'下面直接在本页体验 —— 这是我们自建的 playground，跑在我们自己的后端/你的浏览器里', en:'Try it right here — our own self-hosted playground, running on our backend / in your browser', th:'ลองได้ที่นี่เลย — playground ที่เราสร้างเอง รันบนแบ็กเอนด์ของเรา / ในเบราว์เซอร์ของคุณ'},
     source: {zh:'查看开源内容 ↗', en:'View open source ↗', th:'ดูซอร์สโค้ด ↗'},
     tokens: {zh:'用你的体验卡 token 运行', en:'Runs on your card tokens', th:'ใช้โทเคนจากบัตรของคุณ'}
   };
@@ -132,8 +133,10 @@
     var pg = card.playground||{};
     var html = '<div class="play"><div class="bar"><span class="dot"></span>'+esc(label('play'))+'　·　<span class="toklabel">'+esc(label('tokens'))+'</span></div>';
     if (pg.embed) {
-      html += '<div style="padding:10px 16px 0;font-size:13px;color:var(--muted)">'+esc(label('embedhint'))+'</div>';
-      html += '<iframe src="'+esc(pg.embed)+'" allow="camera;microphone;clipboard-write" loading="lazy" referrerpolicy="no-referrer"></iframe>';
+      var hint = pg.selfHosted ? label('selfhosted') : label('embedhint');
+      var src = pg.embed + (pg.embed.charAt(0)==='/' ? (pg.embed.indexOf('?')<0?'?':'&')+'lang='+lang() : '');
+      html += '<div style="padding:10px 16px 0;font-size:13px;color:var(--muted)">'+esc(hint)+'</div>';
+      html += '<iframe src="'+esc(src)+'" allow="camera;microphone;clipboard-write" loading="lazy" referrerpolicy="no-referrer"></iframe>';
     } else {
       html += '<div class="launch"><p>'+esc(label('embedhint'))+'</p>'
         + '<a class="btn primary" href="'+esc(pg.url||'#')+'" target="_blank" rel="noopener">'+esc(label('launch'))+' →</a></div>';
