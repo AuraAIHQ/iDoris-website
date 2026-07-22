@@ -27,11 +27,9 @@ case "${ARG}" in
   *)         CREDITS="${ARG}" ;;
 esac
 
-# 二次确认：与 ~/Dev/.env 的 IDORIS_ADMIN_SECRET 比对
-if [ -f "${ENV_FILE}" ] && grep -q '^IDORIS_ADMIN_SECRET=' "${ENV_FILE}"; then
-  SECRET=$(grep '^IDORIS_ADMIN_SECRET=' "${ENV_FILE}" | head -1 | cut -d= -f2- | tr -d "\"'")
-  read -r -s -p "IDORIS_ADMIN_SECRET: " TYPED; echo
-  [ "${TYPED}" = "${SECRET}" ] || die "secret mismatch, aborted"
+# 本机校验：~/Dev/.env 里必须有 IDORIS_ADMIN_SECRET（＝在你本机跑），不再要你手输密码
+if ! { [ -f "${ENV_FILE}" ] && grep -q '^IDORIS_ADMIN_SECRET=' "${ENV_FILE}"; }; then
+  die "缺少 ${ENV_FILE} 里的 IDORIS_ADMIN_SECRET（本机校验）"
 fi
 
 CUR_FILE=$(mktemp)
@@ -49,6 +47,12 @@ PY
 fi
 
 [[ "${CREDITS}" =~ ^[0-9]+$ ]] && [ "${CREDITS}" -gt 0 ] || die "credits must be a positive integer (got ${CREDITS})"
+
+# 可见确认（普通输入，不是密码）
+USD_SHOW=$(python3 -c "print('%.2f' % (${CREDITS}*${USD_PER_CREDIT}))")
+printf '→ 给钱包 %s 充 %s 积分 (约 $%s)\n' "${WALLET}" "${CREDITS}" "${USD_SHOW}"
+read -r -p "确认充值? [y/N] " YN
+[ "${YN}" = "y" ] || [ "${YN}" = "Y" ] || die "已取消"
 
 OUT_FILE=$(mktemp)
 python3 - "${CUR_FILE}" "${OUT_FILE}" "${WALLET}" "${CREDITS}" "${USD_PER_CREDIT}" <<'PY'

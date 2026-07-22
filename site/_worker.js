@@ -6,7 +6,21 @@
 
 const USD_PER_CREDIT = 0.02;    // 1 积分 = $0.02（= 50 积分/美元）
 const POINTS_PER_CREDIT = 1;    // 社区积分 : 积分 = 1:1
-const IMAGE_COST = 1;           // 自建出图：每张扣 1 积分（GPU 实际成本远低于此）
+
+// ===== 计价 / 计量逻辑（改这里就好，别把系数散进各处 handler）=====
+// 规则：按【实际消耗】折成本 × 倍率，向上取整，且不低于底线；底线保证复杂/长任务不亏。
+const PRICING = {
+  floorCredits: 2,          // 底线：任何一次生成最少扣 2 积分
+  markup: 2,                // 实际成本 ×2
+  usdPerGpuSec: 0.000306,   // A10G 参考单价（把 gpu_sec 折成美元成本）
+  coeff: { image: 1 },      // 特殊系数：某类调高就改这里（如以后 video: 3）
+};
+// 消耗(美元) → 应扣积分 = max(底线, ceil(成本 × 倍率 × 系数 / 单价))
+function creditsForUsd(usdCost, kind) {
+  const coeff = PRICING.coeff[kind] || 1;
+  const c = Math.ceil((usdCost * PRICING.markup * coeff) / USD_PER_CREDIT) || 0;
+  return Math.max(PRICING.floorCredits, c);
+}
 
 const json = (d, s = 200) => new Response(JSON.stringify(d), { status: s, headers: { 'content-type': 'application/json; charset=utf-8' } });
 const readJson = async (r) => { try { return await r.json(); } catch { return null; } };
@@ -71,14 +85,18 @@ async function play(request, env) {
   const raw = await env.ENTITLEMENTS.get(`ent:${code}`);
   if (!raw) return json({ error: 'no_wallet', message: '钱包为空，先充值' }, 404);
   const e = JSON.parse(raw);
-  if (e.remaining < IMAGE_COST) return json({ error: 'insufficient', remaining: e.remaining, need: IMAGE_COST }, 402);
+  if (e.remaining < PRICING.floorCredits) return json({ error: 'insufficient', remaining: e.remaining, need: PRICING.floorCredits }, 402);
   let r;
   try { r = await fetch(env.MODAL_PLAY_URL, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ token: env.PLAY_TOKEN, prompt }) }); }
   catch (err) { return json({ error: 'upstream_unreachable' }, 502); }
   const d = await r.json().catch(() => null);
   if (!r.ok || !d?.image) return json({ error: 'gen_failed', detail: d?.error }, 502);
-  e.remaining -= IMAGE_COST; await env.ENTITLEMENTS.put(`ent:${code}`, JSON.stringify(e)); // 成功才扣
-  return json({ image: d.image, spent: IMAGE_COST, remaining: e.remaining, gpu_sec: d.gpu_sec });
+  // 成功才扣：按实际 gpu 消耗折算积分（≥底线），余额不足则扣光
+  const usdCost = (Number(d.gpu_sec) || 0) * PRICING.usdPerGpuSec;
+  const cost = creditsForUsd(usdCost, 'image');
+  const spent = Math.min(e.remaining, cost);
+  e.remaining -= spent; await env.ENTITLEMENTS.put(`ent:${code}`, JSON.stringify(e));
+  return json({ image: d.image, spent, remaining: e.remaining, gpu_sec: d.gpu_sec });
 }
 
 export default {
@@ -88,7 +106,7 @@ export default {
     if (p === '/api/points/redeem' && m === 'POST') return redeemPoints(request, env);
     if (p === '/api/balance' && m === 'GET') return getBalance(url, env);
     if (p === '/api/redeem' && m === 'POST') return redeemCredits(request, env);
-    if (p === '/api/config' && m === 'GET') return json({ mode: 'offline+points', usdPerCredit: USD_PER_CREDIT, pointsPerCredit: POINTS_PER_CREDIT, imageCost: IMAGE_COST, play: !!(env.MODAL_PLAY_URL && env.PLAY_TOKEN) });
+    if (p === '/api/config' && m === 'GET') return json({ mode: 'offline+points', usdPerCredit: USD_PER_CREDIT, pointsPerCredit: POINTS_PER_CREDIT, floorCredits: PRICING.floorCredits, markup: PRICING.markup, play: !!(env.MODAL_PLAY_URL && env.PLAY_TOKEN) });
     if (p.startsWith('/api/')) return json({ error: 'not_found' }, 404);
     return env.ASSETS.fetch(request);
   },

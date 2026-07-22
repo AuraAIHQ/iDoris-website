@@ -36,7 +36,7 @@
   <div class="chips" id="chips"></div>
   <div class="meta">
     <span id="bal">余额 · balance …</span>
-    <span>每张 <b id="cost">1</b> 积分 · <a href="/buy" target="_blank">充值 top up ↗</a></span>
+    <span>每张 <b id="cost">≥2</b> 积分（按复杂度） · <a href="/buy" target="_blank">充值 top up ↗</a></span>
   </div>
   <div class="stage" id="stage"><div class="ph" id="ph">输入一句话，点「生成」。第一张会稍慢（模型冷启动），之后很快。<br>Type a sentence and hit Generate. The first one warms up the model.</div></div>
   <div class="msg" id="msg"></div>
@@ -49,7 +49,7 @@
   var W=wallet();
   function loadBal(){ fetch('/api/balance?code='+encodeURIComponent(W)).then(function(r){return r.json();}).then(function(d){ $('bal').innerHTML='余额 balance <b>'+(d.remaining||0).toLocaleString()+'</b> 积分'; }).catch(function(){}); }
   loadBal();
-  fetch('/api/config').then(function(r){return r.json();}).then(function(c){ if(c&&c.imageCost) $('cost').textContent=c.imageCost; }).catch(function(){});
+  fetch('/api/config').then(function(r){return r.json();}).then(function(c){ if(c&&c.floorCredits) $('cost').textContent='≥'+c.floorCredits; }).catch(function(){});
   ['a black curly dog with blue eyes','a dragon over a pixel city','a bowl of noodles, steam','chiang mai night market'].forEach(function(t){ var b=document.createElement('button'); b.textContent=t; b.onclick=function(){ $('p').value=t; }; $('chips').appendChild(b); });
 
   $('go').onclick=async function(){
