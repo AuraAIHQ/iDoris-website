@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en" data-lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Text to Image · iDoris playground</title>
+<style>
+  :root{--cream:#F4F1EC;--ink:#1a1a1f;--orange:#FF5233;--cyan:#49C7E6;--line:#e2ddd2;--muted:#8a8578}
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%;background:var(--cream);color:var(--ink);font-family:ui-monospace,Menlo,monospace}
+  .wrap{max-width:760px;margin:0 auto;padding:20px 18px 40px}
+  .bar{display:flex;gap:8px;align-items:stretch;flex-wrap:wrap}
+  .bar input{flex:1;min-width:180px;font:inherit;font-size:15px;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink)}
+  .bar button{font:inherit;font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:12px 20px;border:0;border-radius:10px;background:var(--orange);color:#fff;cursor:pointer}
+  .bar button:disabled{opacity:.55;cursor:progress}
+  .meta{margin:10px 2px 0;font-size:12px;color:var(--muted);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+  .meta a{color:var(--orange);text-decoration:none}
+  .stage{margin-top:16px;border:1px solid var(--line);border-radius:14px;background:#fff;min-height:300px;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
+  .stage img{display:block;width:100%;height:auto}
+  .stage .ph{color:var(--muted);font-size:13px;text-align:center;padding:40px 20px;line-height:1.7}
+  .stage.busy::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(45deg,rgba(255,82,51,.06) 0 12px,transparent 12px 24px);animation:mv 1s linear infinite}
+  @keyframes mv{to{background-position:34px 0}}
+  .msg{margin-top:10px;font-size:12.5px;min-height:1em}
+  .msg.no{color:var(--orange)} .msg.ok{color:#2a8a4a}
+  .chips{margin-top:10px;display:flex;gap:6px;flex-wrap:wrap}
+  .chips button{font:inherit;font-size:11px;padding:5px 10px;border:1px solid var(--line);background:#fff;color:#555;border-radius:20px;cursor:pointer}
+  .chips button:hover{border-color:var(--orange);color:var(--orange)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="bar">
+    <input id="p" placeholder="描述你想要的画面… describe an image" value="a cozy cabin in the forest at dusk">
+    <button id="go">生成 Generate</button>
+  </div>
+  <div class="chips" id="chips"></div>
+  <div class="meta">
+    <span id="bal">余额 · balance …</span>
+    <span>每张 <b id="cost">3000</b> token · <a href="/buy" target="_blank">充值 top up ↗</a></span>
+  </div>
+  <div class="stage" id="stage"><div class="ph" id="ph">输入一句话，点「生成」。第一张会稍慢（模型冷启动），之后很快。<br>Type a sentence and hit Generate. The first one warms up the model.</div></div>
+  <div class="msg" id="msg"></div>
+</div>
+<script>
+(function(){
+  var $=function(i){return document.getElementById(i);};
+  function wallet(){ var w=null; try{w=localStorage.getItem('idoris_wallet');}catch(e){}
+    if(!/^[a-f0-9]{12,40}$/.test(w||'')){ w=(crypto.randomUUID?crypto.randomUUID().replace(/-/g,''):(Date.now().toString(16)+Math.floor(Math.random()*1e12).toString(16))).slice(0,24); try{localStorage.setItem('idoris_wallet',w);}catch(e){} } return w; }
+  var W=wallet();
+  function loadBal(){ fetch('/api/balance?code='+encodeURIComponent(W)).then(function(r){return r.json();}).then(function(d){ $('bal').innerHTML='余额 balance <b>'+(d.remaining||0).toLocaleString()+'</b> token'; }).catch(function(){}); }
+  loadBal();
+  fetch('/api/config').then(function(r){return r.json();}).then(function(c){ if(c&&c.imageCost) $('cost').textContent=c.imageCost.toLocaleString(); }).catch(function(){});
+  ['a black curly dog with blue eyes','a dragon over a pixel city','a bowl of noodles, steam','chiang mai night market'].forEach(function(t){ var b=document.createElement('button'); b.textContent=t; b.onclick=function(){ $('p').value=t; }; $('chips').appendChild(b); });
+
+  $('go').onclick=async function(){
+    var prompt=$('p').value.trim(); if(!prompt) return;
+    var btn=this,t=btn.textContent,msg=$('msg'),stage=$('stage');
+    btn.disabled=true; btn.textContent='…'; stage.classList.add('busy'); msg.className='msg'; msg.textContent='';
+    try{
+      var r=await fetch('/api/play',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({code:W,prompt:prompt})});
+      var d=await r.json();
+      if(r.ok&&d.image){
+        stage.innerHTML='<img alt="">'; stage.querySelector('img').src=d.image;
+        msg.className='msg ok'; msg.textContent='✅ 扣 '+d.spent.toLocaleString()+' token，余额 '+d.remaining.toLocaleString()+'（GPU '+d.gpu_sec+'s）';
+        $('bal').innerHTML='余额 balance <b>'+d.remaining.toLocaleString()+'</b> token';
+      } else if(r.status===402){ msg.className='msg no'; msg.innerHTML='余额不足（剩 '+(d.remaining||0).toLocaleString()+'，每张需 '+(d.need||3000).toLocaleString()+'）。<a href="/buy" target="_blank">去充值 ↗</a>'; }
+      else if(r.status===404){ msg.className='msg no'; msg.innerHTML='钱包还没有余额。<a href="/buy" target="_blank">去充值 ↗</a>'; }
+      else if(r.status===503){ msg.className='msg no'; msg.textContent='出图服务正在开通，请稍后再试。'; }
+      else { msg.className='msg no'; msg.textContent=(d.detail||d.error||'生成失败'); }
+    }catch(e){ msg.className='msg no'; msg.textContent='网络错误'; }
+    finally{ btn.disabled=false; btn.textContent=t; stage.classList.remove('busy'); }
+  };
+})();
+</script>
+</body>
+</html>

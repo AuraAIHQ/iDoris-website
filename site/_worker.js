@@ -11,6 +11,7 @@
 
 const TOKENS_PER_USD = 30000;   // 线下定价参考：折算多少 token/美元（¥/฿ 换算后据此上余额）
 const TOKENS_PER_POINT = 300;   // 1 社区积分 = 多少 token
+const IMAGE_COST = 3000;        // 自建出图 playground：每张图扣多少 token（可调；GPU 实际成本远低于此）
 
 const json = (d, s = 200) => new Response(JSON.stringify(d), { status: s, headers: { 'content-type': 'application/json; charset=utf-8' } });
 const readJson = async (r) => { try { return await r.json(); } catch { return null; } };
@@ -77,14 +78,35 @@ async function redeemTokens(request, env) {
   return json({ code: e.code, spent: cost, remaining: e.remaining });
 }
 
+// 自建出图 playground：查钱包 → 调 Modal endpoint 出图 → 成功才扣 token（计量）
+async function play(request, env) {
+  if (!env.ENTITLEMENTS) return json({ error: 'kv_unavailable' }, 503);
+  if (!env.MODAL_PLAY_URL || !env.PLAY_TOKEN) return json({ error: 'play_not_configured' }, 503);
+  const body = await readJson(request);
+  const code = String(body?.code || ''), prompt = String(body?.prompt || '').slice(0, 400);
+  if (!validWallet(code)) return json({ error: 'bad_code' }, 400);
+  const raw = await env.ENTITLEMENTS.get(`ent:${code}`);
+  if (!raw) return json({ error: 'no_wallet', message: '钱包为空，先充值' }, 404);
+  const e = JSON.parse(raw);
+  if (e.remaining < IMAGE_COST) return json({ error: 'insufficient_tokens', remaining: e.remaining, need: IMAGE_COST }, 402);
+  let r;
+  try { r = await fetch(env.MODAL_PLAY_URL, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ token: env.PLAY_TOKEN, prompt }) }); }
+  catch (err) { return json({ error: 'upstream_unreachable' }, 502); }
+  const d = await r.json().catch(() => null);
+  if (!r.ok || !d?.image) return json({ error: 'gen_failed', detail: d?.error }, 502);
+  e.remaining -= IMAGE_COST; await env.ENTITLEMENTS.put(`ent:${code}`, JSON.stringify(e)); // 成功才扣
+  return json({ image: d.image, spent: IMAGE_COST, remaining: e.remaining, gpu_sec: d.gpu_sec });
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url), p = url.pathname, m = request.method;
+    if (p === '/api/play' && m === 'POST') return play(request, env);
     if (p === '/api/admin/grant' && m === 'POST') return adminGrant(request, env);
     if (p === '/api/points/redeem' && m === 'POST') return redeemPoints(request, env);
     if (p === '/api/balance' && m === 'GET') return getBalance(url, env);
     if (p === '/api/redeem' && m === 'POST') return redeemTokens(request, env);
-    if (p === '/api/config' && m === 'GET') return json({ mode: 'offline+points', tokensPerUsd: TOKENS_PER_USD, tokensPerPoint: TOKENS_PER_POINT });
+    if (p === '/api/config' && m === 'GET') return json({ mode: 'offline+points', tokensPerUsd: TOKENS_PER_USD, tokensPerPoint: TOKENS_PER_POINT, imageCost: IMAGE_COST, play: !!(env.MODAL_PLAY_URL && env.PLAY_TOKEN) });
     if (p.startsWith('/api/')) return json({ error: 'not_found' }, 404);
     return env.ASSETS.fetch(request);
   },
