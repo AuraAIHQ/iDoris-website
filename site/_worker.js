@@ -1,42 +1,73 @@
 // iDoris — Cloudflare Pages 高级模式 Worker
-// 拦截 /api/*（Stripe 结账 + webhook + 履约/计量/积分），其余回落静态 env.ASSETS。
-// 不引 SDK：fetch 调 Stripe REST，Web Crypto 验签。
-// 绑定 / secret：
-//   ENTITLEMENTS           —— KV，存履约（token 额度 + 兑换码）与社区积分
-//   STRIPE_SECRET_KEY      —— Stripe 密钥
-//   STRIPE_WEBHOOK_SECRET  —— webhook 签名密钥
-// 金额一律服务端定价（CATALOG），客户端只传 sku。
+// /api/*：充值(Lemon Squeezy 或 Stripe) + webhook + 钱包(token)计量 + 社区积分；其余回落静态。
+// 不引 SDK：fetch 调支付商 REST，Web Crypto 验签。
+// 绑定/secret：ENTITLEMENTS(KV) + 以下二选一（配了谁用谁；Lemon Squeezy 优先）：
+//   Lemon Squeezy: LEMONSQUEEZY_API_KEY, LEMONSQUEEZY_STORE_ID, LEMONSQUEEZY_VARIANT_ID, LEMONSQUEEZY_WEBHOOK_SECRET
+//   Stripe:        STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET
+// 模式：卖【充值包】。客户端生成一个 wallet 码，随结账带上；webhook 按【实付金额】把 token 充进该钱包（可累加）。
 
-const TOKENS_PER_CARD = 40000;   // 一张卡的 token 额度
-const POINTS_PER_CARD = 100;     // 用社区积分兑换一张卡的价格
-const CATALOG = {
-  card:   { name: 'AI 体验卡 · 单张',   amount: 150,  currency: 'usd', cards: 1 },
-  pack5:  { name: 'AI 体验卡 · 5 张包',  amount: 650,  currency: 'usd', cards: 5 },
-  pack10: { name: 'AI 体验卡 · 10 张包', amount: 1200, currency: 'usd', cards: 10 },
-};
+const TOKENS_PER_USD = 30000;   // 1 USD = 多少 token（可调）
+const TOKENS_PER_POINT = 300;   // 1 社区积分 = 多少 token
+const MIN_USD = 1, MAX_USD = 999;
+const PRESETS = [5, 20, 50, 100];
 
-const json = (data, status = 200) =>
-  new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json; charset=utf-8' } });
+const json = (d, s = 200) => new Response(JSON.stringify(d), { status: s, headers: { 'content-type': 'application/json; charset=utf-8' } });
+const readJson = async (r) => { try { return await r.json(); } catch { return null; } };
+const validWallet = (w) => typeof w === 'string' && /^[a-f0-9]{12,40}$/.test(w);
+const provider = (env) => env.LEMONSQUEEZY_API_KEY ? 'lemonsqueezy' : (env.STRIPE_SECRET_KEY ? 'stripe' : null);
 
-async function readJson(request) { try { return await request.json(); } catch { return null; } }
+// ---------- 钱包：充值累加（幂等按 orderKey）----------
+async function topup(env, code, tokens, orderKey) {
+  if (orderKey) { const seen = await env.ENTITLEMENTS.get(`order:${orderKey}`); if (seen) return; }
+  const raw = await env.ENTITLEMENTS.get(`ent:${code}`);
+  let e = raw ? JSON.parse(raw) : { code, tokens: 0, remaining: 0, created: Date.now(), status: 'active' };
+  e.tokens += tokens; e.remaining += tokens; e.updated = Date.now();
+  await env.ENTITLEMENTS.put(`ent:${code}`, JSON.stringify(e));
+  if (orderKey) await env.ENTITLEMENTS.put(`order:${orderKey}`, code, { expirationTtl: 60 * 60 * 24 * 90 });
+  return e;
+}
 
-// ---------- Stripe 结账 ----------
+// ---------- 结账（按配置选支付商）----------
 async function createCheckout(request, env) {
-  if (!env.STRIPE_SECRET_KEY)
-    return json({ error: 'stripe_not_configured', message: 'STRIPE_SECRET_KEY 未设置，见 docs/stripe-setup.md。' }, 503);
+  const prov = provider(env);
+  if (!prov) return json({ error: 'payment_not_configured', message: '支付未配置，见 payment/README.md。' }, 503);
   const body = await readJson(request);
-  const item = CATALOG[String(body?.sku || '')];
-  if (!item) return json({ error: 'unknown_sku', message: `未知商品：${body?.sku}` }, 400);
+  const usd = Math.round(Number(body?.amountUsd) * 100) / 100;
+  if (!(usd >= MIN_USD && usd <= MAX_USD)) return json({ error: 'bad_amount', message: `金额需在 $${MIN_USD}–$${MAX_USD}` }, 400);
+  const wallet = body?.wallet;
+  if (!validWallet(wallet)) return json({ error: 'bad_wallet' }, 400);
   const origin = new URL(request.url).origin;
+  const cents = Math.round(usd * 100);
+
+  if (prov === 'lemonsqueezy') {
+    const payload = { data: { type: 'checkouts', attributes: {
+      custom_price: cents,
+      checkout_data: { custom: { wallet } },
+      product_options: { redirect_url: `${origin}/buy?status=success`, name: `iDoris 充值 · ${Math.round(usd * TOKENS_PER_USD).toLocaleString()} tokens` },
+    }, relationships: {
+      store: { data: { type: 'stores', id: String(env.LEMONSQUEEZY_STORE_ID) } },
+      variant: { data: { type: 'variants', id: String(env.LEMONSQUEEZY_VARIANT_ID) } },
+    } } };
+    const resp = await fetch('https://api.lemonsqueezy.com/v1/checkouts', {
+      method: 'POST',
+      headers: { authorization: `Bearer ${env.LEMONSQUEEZY_API_KEY}`, accept: 'application/vnd.api+json', 'content-type': 'application/vnd.api+json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await resp.json();
+    if (!resp.ok) return json({ error: 'lemonsqueezy_error', message: data?.errors?.[0]?.detail || 'Lemon Squeezy 创建结账失败' }, 502);
+    return json({ url: data?.data?.attributes?.url });
+  }
+
+  // Stripe
   const form = new URLSearchParams();
   form.set('mode', 'payment');
-  form.set('line_items[0][price_data][currency]', item.currency);
-  form.set('line_items[0][price_data][product_data][name]', item.name);
-  form.set('line_items[0][price_data][unit_amount]', String(item.amount));
+  form.set('line_items[0][price_data][currency]', 'usd');
+  form.set('line_items[0][price_data][product_data][name]', `iDoris 充值 · ${Math.round(usd * TOKENS_PER_USD).toLocaleString()} tokens`);
+  form.set('line_items[0][price_data][unit_amount]', String(cents));
   form.set('line_items[0][quantity]', '1');
-  form.set('success_url', `${origin}/buy?status=success&session_id={CHECKOUT_SESSION_ID}`);
+  form.set('success_url', `${origin}/buy?status=success`);
   form.set('cancel_url', `${origin}/buy?status=cancel`);
-  form.set('metadata[sku]', body.sku);
+  form.set('metadata[wallet]', wallet);
   const resp = await fetch('https://api.stripe.com/v1/checkout/sessions', {
     method: 'POST',
     headers: { authorization: `Bearer ${env.STRIPE_SECRET_KEY}`, 'content-type': 'application/x-www-form-urlencoded' },
@@ -47,125 +78,93 @@ async function createCheckout(request, env) {
   return json({ url: data.url });
 }
 
-async function verifySignature(payload, sigHeader, secret) {
-  if (!sigHeader) return false;
-  const parts = Object.fromEntries(sigHeader.split(',').map((kv) => kv.split('=')));
-  const { t, v1 } = parts;
-  if (!t || !v1) return false;
-  if (Math.abs(Math.floor(Date.now() / 1000) - Number(t)) > 300) return false;
+// ---------- webhook 验签 ----------
+async function hmacHex(secret, payload) {
   const enc = new TextEncoder();
   const key = await crypto.subtle.importKey('raw', enc.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
-  const mac = await crypto.subtle.sign('HMAC', key, enc.encode(`${t}.${payload}`));
-  const expected = [...new Uint8Array(mac)].map((b) => b.toString(16).padStart(2, '0')).join('');
-  if (expected.length !== v1.length) return false;
-  let diff = 0;
-  for (let i = 0; i < expected.length; i++) diff |= expected.charCodeAt(i) ^ v1.charCodeAt(i);
-  return diff === 0;
+  const mac = await crypto.subtle.sign('HMAC', key, enc.encode(payload));
+  return [...new Uint8Array(mac)].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
+function timingEq(a, b) { if (a.length !== b.length) return false; let d = 0; for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i); return d === 0; }
 
-// ---------- 履约：发放一份体验卡额度（Stripe 或积分都走这里）----------
-async function grantEntitlement(env, { sku, source, sessionId, email, amountTotal, currency }) {
-  const item = CATALOG[sku] || CATALOG.card;
-  const cards = item.cards;
-  const tokens = cards * TOKENS_PER_CARD;
-  const code = crypto.randomUUID().replace(/-/g, '').slice(0, 16);
-  const ent = {
-    code, sku, source, cards, tokens, remaining: tokens, email: email || null,
-    sessionId: sessionId || null, amountTotal: amountTotal ?? null, currency: currency || null,
-    created: Date.now(), status: 'active',
-  };
-  await env.ENTITLEMENTS.put(`ent:${code}`, JSON.stringify(ent));
-  if (sessionId) await env.ENTITLEMENTS.put(`sess:${sessionId}`, code);
-  return ent;
-}
-
-async function handleWebhook(request, env) {
+async function stripeWebhook(request, env) {
   if (!env.STRIPE_WEBHOOK_SECRET) return json({ error: 'webhook_not_configured' }, 503);
   const payload = await request.text();
-  const ok = await verifySignature(payload, request.headers.get('stripe-signature'), env.STRIPE_WEBHOOK_SECRET);
-  if (!ok) return json({ error: 'invalid_signature' }, 400);
-  let event;
-  try { event = JSON.parse(payload); } catch { return json({ error: 'bad_json' }, 400); }
+  const sig = request.headers.get('stripe-signature') || '';
+  const parts = Object.fromEntries(sig.split(',').map((kv) => kv.split('=')));
+  if (!parts.t || !parts.v1 || Math.abs(Math.floor(Date.now() / 1000) - Number(parts.t)) > 300) return json({ error: 'invalid_signature' }, 400);
+  if (!timingEq(await hmacHex(env.STRIPE_WEBHOOK_SECRET, `${parts.t}.${payload}`), parts.v1)) return json({ error: 'invalid_signature' }, 400);
+  const event = JSON.parse(payload);
   if (event.type === 'checkout.session.completed' && env.ENTITLEMENTS) {
-    const s = event.data.object;
-    if (!(await env.ENTITLEMENTS.get(`sess:${s.id}`))) { // 幂等
-      await grantEntitlement(env, {
-        sku: s.metadata?.sku, source: 'stripe', sessionId: s.id,
-        email: s.customer_details?.email, amountTotal: s.amount_total, currency: s.currency,
-      });
-    }
+    const s = event.data.object, wallet = s.metadata?.wallet;
+    if (validWallet(wallet)) await topup(env, wallet, Math.round((s.amount_total || 0) / 100 * TOKENS_PER_USD), s.id);
   }
   return json({ received: true });
 }
 
-// ---------- 履约查询（成功页轮询）----------
-async function lookupEntitlement(url, env) {
-  const sid = url.searchParams.get('session_id');
-  if (!sid) return json({ error: 'missing_session_id' }, 400);
-  if (!env.ENTITLEMENTS) return json({ status: 'pending' });
-  const code = await env.ENTITLEMENTS.get(`sess:${sid}`);
-  if (!code) return json({ status: 'pending' });
-  const raw = await env.ENTITLEMENTS.get(`ent:${code}`);
-  if (!raw) return json({ status: 'pending' });
-  const e = JSON.parse(raw);
-  return json({ status: 'active', code: e.code, cards: e.cards, tokens: e.tokens });
+async function lemonWebhook(request, env) {
+  if (!env.LEMONSQUEEZY_WEBHOOK_SECRET) return json({ error: 'webhook_not_configured' }, 503);
+  const payload = await request.text();
+  const sig = request.headers.get('x-signature') || '';
+  if (!timingEq(await hmacHex(env.LEMONSQUEEZY_WEBHOOK_SECRET, payload), sig)) return json({ error: 'invalid_signature' }, 400);
+  const event = JSON.parse(payload);
+  const name = event?.meta?.event_name;
+  if ((name === 'order_created' || name === 'order_paid') && env.ENTITLEMENTS) {
+    const attr = event?.data?.attributes || {};
+    const wallet = event?.meta?.custom_data?.wallet;
+    const paid = attr.status === 'paid' || name === 'order_paid';
+    const cents = attr.total || attr.total_usd || 0; // LS 金额单位为分
+    if (paid && validWallet(wallet)) await topup(env, wallet, Math.round(cents / 100 * TOKENS_PER_USD), String(event?.data?.id || ''));
+  }
+  return json({ received: true });
 }
 
-// ---------- token 计量 ----------
+// ---------- 钱包查询/计量 ----------
 async function getBalance(url, env) {
   if (!env.ENTITLEMENTS) return json({ error: 'kv_unavailable' }, 503);
   const code = url.searchParams.get('code');
-  if (!code) return json({ error: 'missing_code' }, 400);
+  if (!validWallet(code)) return json({ error: 'bad_code' }, 400);
   const raw = await env.ENTITLEMENTS.get(`ent:${code}`);
-  if (!raw) return json({ error: 'not_found' }, 404);
+  if (!raw) return json({ status: 'empty', code, remaining: 0, tokens: 0 });
   const e = JSON.parse(raw);
-  return json({ code: e.code, remaining: e.remaining, tokens: e.tokens, cards: e.cards, status: e.status });
+  return json({ status: 'active', code: e.code, remaining: e.remaining, tokens: e.tokens });
 }
-
-// 复现/跑实验时扣 token：{code, tokens}
 async function redeemTokens(request, env) {
   if (!env.ENTITLEMENTS) return json({ error: 'kv_unavailable' }, 503);
   const body = await readJson(request);
-  const code = String(body?.code || '');
-  const cost = Math.max(0, parseInt(body?.tokens, 10) || 0);
-  if (!code || !cost) return json({ error: 'bad_request' }, 400);
+  const code = String(body?.code || ''), cost = Math.max(0, parseInt(body?.tokens, 10) || 0);
+  if (!validWallet(code) || !cost) return json({ error: 'bad_request' }, 400);
   const raw = await env.ENTITLEMENTS.get(`ent:${code}`);
   if (!raw) return json({ error: 'not_found' }, 404);
   const e = JSON.parse(raw);
   if (e.remaining < cost) return json({ error: 'insufficient_tokens', remaining: e.remaining }, 402);
-  e.remaining -= cost;
-  await env.ENTITLEMENTS.put(`ent:${code}`, JSON.stringify(e));
+  e.remaining -= cost; await env.ENTITLEMENTS.put(`ent:${code}`, JSON.stringify(e));
   return json({ code: e.code, spent: cost, remaining: e.remaining });
 }
-
-// ---------- 社区积分购买：用积分兑换一张卡 ----------
-// 积分余额存 KV `points:<pointsCode>`（由社区侧发放，此处只做扣减兑换）。
+// 社区积分 → 充进钱包
 async function redeemPoints(request, env) {
   if (!env.ENTITLEMENTS) return json({ error: 'kv_unavailable' }, 503);
   const body = await readJson(request);
-  const pointsCode = String(body?.pointsCode || '');
-  const sku = String(body?.sku || 'card');
-  const item = CATALOG[sku];
-  if (!pointsCode || !item) return json({ error: 'bad_request' }, 400);
-  const cost = item.cards * POINTS_PER_CARD;
+  const pointsCode = String(body?.pointsCode || ''), points = Math.max(0, parseInt(body?.points, 10) || 0), wallet = body?.wallet;
+  if (!pointsCode || !points || !validWallet(wallet)) return json({ error: 'bad_request' }, 400);
   const raw = await env.ENTITLEMENTS.get(`points:${pointsCode}`);
-  const balance = raw ? parseInt(raw, 10) || 0 : 0;
-  if (balance < cost) return json({ error: 'insufficient_points', balance, cost }, 402);
-  await env.ENTITLEMENTS.put(`points:${pointsCode}`, String(balance - cost));
-  const ent = await grantEntitlement(env, { sku, source: 'points' });
-  return json({ code: ent.code, cards: ent.cards, tokens: ent.tokens, pointsRemaining: balance - cost });
+  const bal = raw ? parseInt(raw, 10) || 0 : 0;
+  if (bal < points) return json({ error: 'insufficient_points', balance: bal }, 402);
+  await env.ENTITLEMENTS.put(`points:${pointsCode}`, String(bal - points));
+  const e = await topup(env, wallet, points * TOKENS_PER_POINT, `points:${pointsCode}:${Date.now()}`);
+  return json({ code: e.code, tokens: e.tokens, remaining: e.remaining, pointsRemaining: bal - points });
 }
 
 export default {
   async fetch(request, env) {
-    const url = new URL(request.url);
-    const p = url.pathname, m = request.method;
+    const url = new URL(request.url), p = url.pathname, m = request.method;
     if (p === '/api/checkout' && m === 'POST') return createCheckout(request, env);
-    if (p === '/api/stripe-webhook' && m === 'POST') return handleWebhook(request, env);
-    if (p === '/api/entitlement' && m === 'GET') return lookupEntitlement(url, env);
+    if (p === '/api/stripe-webhook' && m === 'POST') return stripeWebhook(request, env);
+    if (p === '/api/lemonsqueezy-webhook' && m === 'POST') return lemonWebhook(request, env);
     if (p === '/api/balance' && m === 'GET') return getBalance(url, env);
     if (p === '/api/redeem' && m === 'POST') return redeemTokens(request, env);
     if (p === '/api/points/redeem' && m === 'POST') return redeemPoints(request, env);
+    if (p === '/api/config' && m === 'GET') return json({ provider: provider(env), tokensPerUsd: TOKENS_PER_USD, presets: PRESETS, min: MIN_USD, max: MAX_USD });
     if (p.startsWith('/api/')) return json({ error: 'not_found' }, 404);
     return env.ASSETS.fetch(request);
   },
