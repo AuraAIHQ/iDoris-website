@@ -16,7 +16,7 @@ const PRICING = {
   usdPerLlmTok: 0.0000006,  // Workers AI 参考单价（把 LLM token 折成美元成本，≈$0.6/1M）
   coeff: { image: 1, chat: 1 }, // 特殊系数：某类调高就改这里（如以后 video: 3）
 };
-const CHAT_MODEL_DEFAULT = '@cf/meta/llama-3.1-8b-instruct';
+const CHAT_MODEL_DEFAULT = '@cf/meta/llama-3.3-70b-instruct-fp8-fast'; // 当前在架，多语(中/泰/英)质量好；可用 env.CHAT_MODEL 覆盖
 // 消耗(美元) → 应扣积分 = max(底线, ceil(成本 × 倍率 × 系数 / 单价))
 function creditsForUsd(usdCost, kind) {
   const coeff = PRICING.coeff[kind] || 1;
@@ -104,6 +104,10 @@ async function play(request, env) {
 // 自建聊天/生成：查钱包 → 调 Cloudflare Workers AI(env.AI) → 成功才按 token 扣积分
 // 无外部 key、无自建服务器，模型跑在 Cloudflare 平台上。C 类卡(角色扮演/生成网页等)共用此端点。
 async function chat(request, env) {
+  try { return await chatImpl(request, env); }
+  catch (err) { return json({ error: 'chat_crash', detail: String(err && err.stack || err && err.message || err) }, 500); }
+}
+async function chatImpl(request, env) {
   if (!env.ENTITLEMENTS) return json({ error: 'kv_unavailable' }, 503);
   if (!env.AI) return json({ error: 'chat_not_configured' }, 503);
   const body = await readJson(request);
@@ -138,15 +142,40 @@ async function chat(request, env) {
   return json({ reply, spent, remaining: e.remaining, model });
 }
 
+// 自建「涂鸦变画」：查钱包 → 调 Modal ControlNet endpoint(涂鸦+prompt→图) → 成功才按 gpu 扣积分
+async function doodle(request, env) {
+  if (!env.ENTITLEMENTS) return json({ error: 'kv_unavailable' }, 503);
+  if (!env.MODAL_DOODLE_URL || !env.PLAY_TOKEN) return json({ error: 'doodle_not_configured' }, 503);
+  const body = await readJson(request);
+  const code = String(body?.code || ''), prompt = String(body?.prompt || '').slice(0, 400), image = String(body?.image || '');
+  if (!validWallet(code)) return json({ error: 'bad_code' }, 400);
+  if (!image.startsWith('data:image')) return json({ error: 'no_sketch', message: '先画点东西' }, 400);
+  const raw = await env.ENTITLEMENTS.get(`ent:${code}`);
+  if (!raw) return json({ error: 'no_wallet', message: '钱包为空，先充值' }, 404);
+  const e = JSON.parse(raw);
+  if (e.remaining < PRICING.floorCredits) return json({ error: 'insufficient', remaining: e.remaining, need: PRICING.floorCredits }, 402);
+  let r;
+  try { r = await fetch(env.MODAL_DOODLE_URL, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ token: env.PLAY_TOKEN, prompt, image }) }); }
+  catch (err) { return json({ error: 'upstream_unreachable' }, 502); }
+  const d = await r.json().catch(() => null);
+  if (!r.ok || !d?.image) return json({ error: 'gen_failed', detail: d?.error }, 502);
+  const usdCost = (Number(d.gpu_sec) || 0) * PRICING.usdPerGpuSec;
+  const cost = creditsForUsd(usdCost, 'image');
+  const spent = Math.min(e.remaining, cost);
+  e.remaining -= spent; await env.ENTITLEMENTS.put(`ent:${code}`, JSON.stringify(e));
+  return json({ image: d.image, spent, remaining: e.remaining, gpu_sec: d.gpu_sec });
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url), p = url.pathname, m = request.method;
     if (p === '/api/chat' && m === 'POST') return chat(request, env);
+    if (p === '/api/doodle' && m === 'POST') return doodle(request, env);
     if (p === '/api/play' && m === 'POST') return play(request, env);
     if (p === '/api/points/redeem' && m === 'POST') return redeemPoints(request, env);
     if (p === '/api/balance' && m === 'GET') return getBalance(url, env);
     if (p === '/api/redeem' && m === 'POST') return redeemCredits(request, env);
-    if (p === '/api/config' && m === 'GET') return json({ mode: 'offline+points', usdPerCredit: USD_PER_CREDIT, pointsPerCredit: POINTS_PER_CREDIT, floorCredits: PRICING.floorCredits, markup: PRICING.markup, play: !!(env.MODAL_PLAY_URL && env.PLAY_TOKEN), chat: !!env.AI });
+    if (p === '/api/config' && m === 'GET') return json({ mode: 'offline+points', usdPerCredit: USD_PER_CREDIT, pointsPerCredit: POINTS_PER_CREDIT, floorCredits: PRICING.floorCredits, markup: PRICING.markup, play: !!(env.MODAL_PLAY_URL && env.PLAY_TOKEN), chat: !!env.AI, doodle: !!(env.MODAL_DOODLE_URL && env.PLAY_TOKEN) });
     if (p.startsWith('/api/')) return json({ error: 'not_found' }, 404);
     return env.ASSETS.fetch(request);
   },
