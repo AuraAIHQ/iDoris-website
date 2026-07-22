@@ -1,62 +1,49 @@
 # iDoris 支付集成
 
-**核心逻辑先行**：我们卖的不是 token，是"像辅导班一样、给普通人微小台阶和微小成就感、一步步 landing 到 AI"的**引导**。支付只是水管，越简单越好。
+**核心逻辑先行**：我们卖的不是 token，是"像辅导班一样、给普通人微小台阶和微小成就感、一步步 landing 到 AI"的**引导**。支付只是水管，越简单越安全越好。
 
-## 现行模式：不做在线卡支付。两条路 → 同一个 token 钱包。
+## 货币单位
 
-- **① 线下收款 → 管理员直接上余额**：清迈 meetup 现场 / PromptPay / 转账收款后，拿用户的**钱包码**在 `/admin` 给他上余额。
-- **② 线上社区积分 → 钱包**：积分在**另一个仓库**发放（KV `points:<code>`），用户在 `/buy` 用积分兑换成 token。
+- **1 积分（credit）= 1 token = $0.02**。钱包 `ent:<wallet>` 存积分余额。
+- 玩卡从钱包扣积分（如自建出图 **1 积分/张**）。
+- 汇率在 `site/_worker.js` 顶部：`USD_PER_CREDIT=0.02`、`POINTS_PER_CREDIT=1`、`IMAGE_COST=1`。
 
-> 玩每张卡从钱包扣 token（`/api/redeem`）。钱包码存用户本机 localStorage，余额永久、可累加。
+## 两条充值路，同一个钱包
 
-### 为什么放弃在线卡支付 / Lemon Squeezy（决策存档）
-- Lemon Squeezy 已**被 Stripe 收购**；且**注册繁琐**（证件照识别不了）。
-- 单张 ¥10/$1.5 直接刷卡，固定手续费($0.30–0.50)吃掉 20–35%，本就不划算。
-- 面向清迈本地 + 熟人社区，**线下收款 + 社区积分**更简单、零费率、更贴合"引导/辅导班"定位。
+- **① 线下收款 → 本地脚本上余额**（不开公网接口）：清迈 meetup / PromptPay / 转账收到钱后，在你本机跑 `scripts/topup.sh` 给用户钱包充积分。
+- **② 线上社区积分 → 钱包**（`/api/points/redeem`，1:1）：积分在**另一个仓库**发放（KV `points:<code>`），用户在 `/buy` 用积分兑换。只动积分、不涉及钱。
 
-## 费率 & 简单度对比（当初调研，存档备查）
+## 安全模型（重要）
 
-| 方案 | 费率 | 谁收/税务 | 简单度 | 适合 |
-|---|---|---|---|---|
-| Stripe | ~2.9–3.65% + ฿10/$0.30 | 你自己报全球税 | 中 | 全球，% 最低但税自理 |
-| Lemon Squeezy(MoR) | ~5% + $0.50 | 它替你收税 | 曾以为最简单，实测注册繁琐 | —（已放弃）|
-| Paddle(MoR) | ~5% + $0.50 | 它替你收税 | 简单（审核严）| 备选 |
-| **PromptPay/线下** | 极低/近乎零 | 你自己 | **本地最简单** | **清迈本地 ✅** |
-| **社区积分** | 0 费率 | 无 | 已就绪 | **国内/熟人/引流 ✅** |
+- **充值不开任何公网接口**：`scripts/topup.sh` 用你本机的 wrangler/Cloudflare 凭证**直接写 KV**。所以线上**不存任何密钥、也不存哈希，攻击面为 0** —— 比"在线接口 + 存哈希"更安全。
+- `IDORIS_ADMIN_SECRET` 只存你本机 `~/Dev/.env`，脚本用它做**本地二次确认**（防别人在你电脑上乱充）。线上一概不存。
+- （如果**将来**要"手机随处充值"的在线接口，那才需要：线上存 `SHA-256(secret)`、验证时对输入做 SHA-256 再比对——**别用 MD5**，太弱。目前不需要。）
 
-## 架构（provider 无关 + 钱包码）
+## 本地充值脚本
 
-所有来源（线下管理员 / 社区积分 / 以后任何渠道）都汇入同一个 `topup(env, code, tokens)`。加新渠道 = 加一个"验证来源 + 调 topup()"的分支，天然"一把搞定所有支付"。
-
+```bash
+./scripts/topup.sh <钱包码> 250          # 直接加 250 积分
+./scripts/topup.sh <钱包码> --usd 5       # 按 $0.02/积分折算（$5 → 250）
+./scripts/topup.sh <钱包码> --points 100  # 社区积分 1:1
+./scripts/topup.sh <钱包码> --balance     # 只查余额
 ```
-/buy ：显示你的钱包码 + 余额
-  ① 线下：把钱包码给我们 → 管理员在 /admin 上余额
-  ② 积分：填积分码+数量 → POST /api/points/redeem → 充进钱包
-玩卡：POST /api/redeem {code, tokens} 扣费
-```
+钱包码：用户在 `/buy` 页「复制钱包码」发给你（12–40 位 hex）。脚本会要你输入 `~/Dev/.env` 里的 `IDORIS_ADMIN_SECRET` 确认。
 
-## API
+## API（线上仅这些，都不涉及收款）
 
 | 端点 | 说明 |
 |---|---|
-| `POST /api/admin/grant` `{wallet, tokens}` + header `x-admin-secret` | 管理员给钱包上余额（线下收款后）|
-| `POST /api/points/redeem` `{pointsCode, points, wallet}` | 社区积分 → 钱包 |
+| `POST /api/points/redeem` `{pointsCode, points, wallet}` | 社区积分 → 钱包（1:1）|
 | `GET  /api/balance?code=<wallet>` | 查余额 |
-| `POST /api/redeem` `{code, tokens}` | 玩卡扣 token |
-| `GET  /api/config` | 模式/汇率 |
+| `POST /api/redeem` `{code, credits}` | 玩卡扣积分 |
+| `POST /api/play` `{code, prompt}` | 自建出图：查钱包→调 Modal→扣 1 积分 |
+| `GET  /api/config` | 单位/汇率 |
 
-汇率在 `site/_worker.js` 顶部：`TOKENS_PER_USD=30000`、`TOKENS_PER_POINT=300`。
+> 已移除公网 `/api/admin/grant` 和 `/admin` 页 —— 充值只在本地。
 
-## 开通（一次性）
+## 定价自洽性
 
-```bash
-# 设管理员密钥（/admin 上余额要用）
-echo "一个强密钥" | npx wrangler pages secret put ADMIN_SECRET --project-name=idoris-website
-./scripts/deploy.sh
-```
-- 页面：用户 `/buy`（钱包+积分充值）、管理员 `/admin`（上余额，noindex）。
-- **社区积分对接**：另一个仓库把积分写进同一个 KV namespace 的 `points:<code>`（或提供一个内部 API），这里 `/api/points/redeem` 就能扣。
-- 未设 `ADMIN_SECRET` 时 `/api/admin/grant` 返回 503；不影响其它。
+统一单位 1 积分 = $0.02，积分/token/社区积分三者 1:1，逻辑自洽。成本核算：自建出图 GPU 实测 ~$0.00004–0.01/张，扣 1 积分($0.02) → 毛利 2–500 倍；LLM 类按实际 API token 用量×倍率计费（别一口价）。面向清迈学生偏便宜（$1=50 次出图），符合"牵引不是利润"。
 
-## 前端展示原则（呼应核心逻辑）
-给用户**别显示裸 token**——显示"≈N 次实验 / 1 张图 = X"更有台阶感。钱包/余额是后台账，前台讲的是"你又往前走了一步"。
+## 前端展示原则
+给用户显示"积分"和"≈N 次"，别显示水管细节。钱包/余额是账，前台讲的是"你又往前走了一步"。

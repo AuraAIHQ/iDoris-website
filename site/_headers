@@ -1,8 +1,12 @@
 /*
   X-Content-Type-Options: nosniff
-  X-Frame-Options: DENY
+  X-Frame-Options: SAMEORIGIN
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: geolocation=(), microphone=(), camera=()
+
+/play/*
+  X-Frame-Options: SAMEORIGIN
+  Permissions-Policy: camera=(self), microphone=(self)
 
 /assets/*
   Cache-Control: public, max-age=3600, must-revalidate

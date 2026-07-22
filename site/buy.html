@@ -57,12 +57,12 @@
     <div class="hero-copy" style="max-width:820px">
       <div class="kicker rise d1" data-zh="AI 体验卡 · 我的钱包" data-th="บัตรทดลอง AI · กระเป๋าของฉัน">AI cards · my wallet</div>
       <h1 class="rise d2" data-zh="你的 token <span class=&quot;glow&quot;>钱包。</span>" data-th="กระเป๋า token <span class=&quot;glow&quot;>ของคุณ</span>">Your token <span class="glow">wallet.</span></h1>
-      <p class="lede rise d3" data-zh="玩每张体验卡都从这个钱包扣 token。<b>线下支付后我们直接给你上余额</b>，或用<b>社区积分</b>充值。钱包码存在你本机，余额永久有效。" data-th="เล่นการ์ดแต่ละใบหักจากกระเป๋านี้ จ่ายออฟไลน์แล้วเราเติมยอดให้ หรือใช้แต้มชุมชน โค้ดกระเป๋าเก็บในเครื่องคุณ ยอดไม่หมดอายุ">Every card you play draws tokens from this wallet. <b>Pay us offline and we credit your balance directly</b>, or top up with <b>community points</b>. Your wallet code lives on this device; the balance never expires.</p>
+      <p class="lede rise d3" data-zh="玩每张体验卡都从这个钱包扣积分（如出图 1 积分/张）。<b>线下支付后我们直接给你上余额</b>，或用<b>社区积分</b>充值。钱包码存在你本机，余额永久有效。" data-th="เล่นการ์ดแต่ละใบหักจากกระเป๋านี้ จ่ายออฟไลน์แล้วเราเติมยอดให้ หรือใช้แต้มชุมชน โค้ดกระเป๋าเก็บในเครื่องคุณ ยอดไม่หมดอายุ">Every card you play draws credits from this wallet (e.g. 1 credit per image). <b>Pay us offline and we credit your balance directly</b>, or top up with <b>community points</b>. Your wallet code lives on this device; the balance never expires.</p>
 
       <div class="wallet rise d3">
         <div class="lab" data-zh="你的钱包码" data-th="โค้ดกระเป๋าของคุณ">Your wallet code</div>
         <div class="code" id="wcode">…</div>
-        <div class="bal" id="wbal">0 <small>tokens</small></div>
+        <div class="bal" id="wbal">0 <small>积分</small></div>
         <div class="row">
           <button id="copy" data-zh="复制钱包码" data-th="คัดลอกโค้ด">Copy code</button>
           <button id="refresh" data-zh="刷新余额" data-th="รีเฟรชยอด">Refresh balance</button>
@@ -78,8 +78,8 @@
         </div>
         <div class="opt">
           <h3 data-zh="② 社区积分充值" data-th="② เติมด้วยแต้มชุมชน">② Community points</h3>
-          <div class="sub" data-zh="积分 → token" data-th="แต้ม → token">points → tokens</div>
-          <p data-zh="有社区积分兑换码？填进来把积分充成 token（1 积分 = 300 token）。" data-th="มีโค้ดแต้มชุมชน? กรอกเพื่อแปลงแต้มเป็น token (1 แต้ม = 300 token)">Got a community-points code? Redeem points into tokens here (1 point = 300 tokens).</p>
+          <div class="sub" data-zh="社区积分 → 钱包" data-th="แต้ม → เครดิต">points → credits</div>
+          <p data-zh="有社区积分兑换码？填进来把积分充进钱包（社区积分 : 钱包积分 = 1:1）。" data-th="มีโค้ดแต้มชุมชน? กรอกเพื่อเติมเข้ากระเป๋า (แต้มชุมชน : เครดิต = 1:1)">Got a community-points code? Redeem points into your wallet here (1 point = 1 credit).</p>
           <input id="pcode" placeholder="points code" autocomplete="off">
           <input id="pnum" type="number" min="1" placeholder="points" inputmode="numeric">
           <button class="act" id="predeem" data-zh="兑换到钱包" data-th="แลกเข้ากระเป๋า">Redeem to wallet</button>
@@ -120,7 +120,7 @@
     document.getElementById('wcode').textContent=W;
     function loadBal(){
       fetch('/api/balance?code='+encodeURIComponent(W)).then(function(r){return r.json();}).then(function(d){
-        document.getElementById('wbal').innerHTML=fmt(d.remaining)+' <small>tokens</small>';
+        document.getElementById('wbal').innerHTML=fmt(d.remaining)+' <small>积分</small>';
       }).catch(function(){});
     }
     loadBal();
@@ -135,7 +135,7 @@
       try{
         var r=await fetch('/api/points/redeem',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({pointsCode:code,points:num,wallet:W})});
         var d=await r.json();
-        if(r.ok&&d.ok){ pm.className='msg ok'; pm.textContent=(lang()==='zh'?'✅ 已充 '+fmt(num*300)+' token，余额 '+fmt(d.remaining):'✅ +'+fmt(num*300)+' tokens, balance '+fmt(d.remaining)); loadBal(); }
+        if(r.ok&&d.ok){ pm.className='msg ok'; pm.textContent=(lang()==='zh'?'✅ 已充 '+fmt(num)+' 积分，余额 '+fmt(d.remaining):'✅ +'+fmt(num)+' credits, balance '+fmt(d.remaining)); loadBal(); }
         else if(d.error==='insufficient_points'){ pm.className='msg no'; pm.textContent=lang()==='zh'?'积分不足（剩 '+fmt(d.balance)+'）':'Not enough points (left '+fmt(d.balance)+')'; }
         else { pm.className='msg no'; pm.textContent=(d.message||d.error||'failed'); }
       }catch(e){ pm.className='msg no'; pm.textContent='network error'; }

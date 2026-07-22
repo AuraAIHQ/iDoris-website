@@ -1,47 +1,29 @@
 // iDoris — Cloudflare Pages 高级模式 Worker
-// 支付模型：不做在线卡支付。两条路 →（1）线下收款后【管理员直接给钱包上余额】；（2）线上【社区积分】兑换。
-// 都汇入同一个 token 钱包 topup()。玩卡从钱包扣 token。
-// 绑定/secret：ENTITLEMENTS(KV)、ADMIN_SECRET（管理员上余额用）。
-// 端点：
-//   POST /api/admin/grant   {wallet, tokens}   header x-admin-secret  → 给钱包充 token（线下收款后用）
-//   POST /api/points/redeem {pointsCode, points, wallet}              → 社区积分 → 钱包
-//   GET  /api/balance?code=<wallet>                                    → 查余额
-//   POST /api/redeem        {code, tokens}                            → 玩卡扣 token
-//   GET  /api/config                                                   → 汇率/模式
+// 货币单位：积分(credit) = token，1:1，1 积分 = $0.02。钱包 ent:<wallet> 存积分余额。
+// 充值只在本地做（scripts/topup.sh 直接写 KV，走你的 wrangler 凭证；不开公网充值接口）。
+// 在线只保留：社区积分兑换（扣积分不涉及钱）、余额查询、玩卡扣费、自建出图。
+// 绑定/secret：ENTITLEMENTS(KV)、PLAY_TOKEN + MODAL_PLAY_URL（自建出图 endpoint）。
 
-const TOKENS_PER_USD = 30000;   // 线下定价参考：折算多少 token/美元（¥/฿ 换算后据此上余额）
-const TOKENS_PER_POINT = 300;   // 1 社区积分 = 多少 token
-const IMAGE_COST = 3000;        // 自建出图 playground：每张图扣多少 token（可调；GPU 实际成本远低于此）
+const USD_PER_CREDIT = 0.02;    // 1 积分 = $0.02（= 50 积分/美元）
+const POINTS_PER_CREDIT = 1;    // 社区积分 : 积分 = 1:1
+const IMAGE_COST = 1;           // 自建出图：每张扣 1 积分（GPU 实际成本远低于此）
 
 const json = (d, s = 200) => new Response(JSON.stringify(d), { status: s, headers: { 'content-type': 'application/json; charset=utf-8' } });
 const readJson = async (r) => { try { return await r.json(); } catch { return null; } };
 const validWallet = (w) => typeof w === 'string' && /^[a-f0-9]{12,40}$/.test(w);
-function timingEq(a, b) { a = String(a); b = String(b); if (a.length !== b.length) return false; let d = 0; for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i); return d === 0; }
 
-// 钱包充值累加（幂等按 orderKey，可选）
-async function topup(env, code, tokens, orderKey) {
+// 钱包累加（幂等按 orderKey，可选）—— 内部字段沿用 tokens/remaining，语义即积分
+async function topup(env, code, credits, orderKey) {
   if (orderKey) { const seen = await env.ENTITLEMENTS.get(`order:${orderKey}`); if (seen) return JSON.parse(await env.ENTITLEMENTS.get(`ent:${code}`) || 'null'); }
   const raw = await env.ENTITLEMENTS.get(`ent:${code}`);
   let e = raw ? JSON.parse(raw) : { code, tokens: 0, remaining: 0, created: Date.now(), status: 'active' };
-  e.tokens += tokens; e.remaining += tokens; e.updated = Date.now();
+  e.tokens += credits; e.remaining += credits; e.updated = Date.now();
   await env.ENTITLEMENTS.put(`ent:${code}`, JSON.stringify(e));
   if (orderKey) await env.ENTITLEMENTS.put(`order:${orderKey}`, code, { expirationTtl: 60 * 60 * 24 * 365 });
   return e;
 }
 
-// 管理员：线下收款后直接给钱包上余额
-async function adminGrant(request, env) {
-  if (!env.ADMIN_SECRET) return json({ error: 'admin_not_configured' }, 503);
-  if (!timingEq(request.headers.get('x-admin-secret') || '', env.ADMIN_SECRET)) return json({ error: 'unauthorized' }, 401);
-  if (!env.ENTITLEMENTS) return json({ error: 'kv_unavailable' }, 503);
-  const body = await readJson(request);
-  const wallet = body?.wallet, tokens = Math.round(Number(body?.tokens) || 0);
-  if (!validWallet(wallet) || !(tokens > 0 && tokens <= 100000000)) return json({ error: 'bad_request', message: 'wallet(12-40 hex) + tokens(1..1e8)' }, 400);
-  const e = await topup(env, wallet, tokens, body?.orderKey ? String(body.orderKey) : null);
-  return json({ ok: true, code: e.code, tokens: e.tokens, remaining: e.remaining });
-}
-
-// 社区积分 → 钱包（积分由另一个仓库发放到 KV points:<code>）
+// 社区积分 → 钱包积分（积分由另一仓库发放到 KV points:<code>）；在线，只动积分不涉及钱
 async function redeemPoints(request, env) {
   if (!env.ENTITLEMENTS) return json({ error: 'kv_unavailable' }, 503);
   const body = await readJson(request);
@@ -51,8 +33,8 @@ async function redeemPoints(request, env) {
   const bal = raw ? parseInt(raw, 10) || 0 : 0;
   if (bal < points) return json({ error: 'insufficient_points', balance: bal }, 402);
   await env.ENTITLEMENTS.put(`points:${pointsCode}`, String(bal - points));
-  const e = await topup(env, wallet, points * TOKENS_PER_POINT, `points:${pointsCode}:${Date.now()}`);
-  return json({ ok: true, code: e.code, tokens: e.tokens, remaining: e.remaining, pointsRemaining: bal - points });
+  const e = await topup(env, wallet, points * POINTS_PER_CREDIT, `points:${pointsCode}:${Date.now()}`);
+  return json({ ok: true, code: e.code, credits: e.remaining, remaining: e.remaining, pointsRemaining: bal - points });
 }
 
 async function getBalance(url, env) {
@@ -60,25 +42,26 @@ async function getBalance(url, env) {
   const code = url.searchParams.get('code');
   if (!validWallet(code)) return json({ error: 'bad_code' }, 400);
   const raw = await env.ENTITLEMENTS.get(`ent:${code}`);
-  if (!raw) return json({ status: 'empty', code, remaining: 0, tokens: 0 });
+  if (!raw) return json({ status: 'empty', code, remaining: 0 });
   const e = JSON.parse(raw);
-  return json({ status: 'active', code: e.code, remaining: e.remaining, tokens: e.tokens });
+  return json({ status: 'active', code: e.code, remaining: e.remaining });
 }
 
-async function redeemTokens(request, env) {
+// 玩卡扣积分
+async function redeemCredits(request, env) {
   if (!env.ENTITLEMENTS) return json({ error: 'kv_unavailable' }, 503);
   const body = await readJson(request);
-  const code = String(body?.code || ''), cost = Math.max(0, parseInt(body?.tokens, 10) || 0);
+  const code = String(body?.code || ''), cost = Math.max(0, parseInt(body?.credits ?? body?.tokens, 10) || 0);
   if (!validWallet(code) || !cost) return json({ error: 'bad_request' }, 400);
   const raw = await env.ENTITLEMENTS.get(`ent:${code}`);
   if (!raw) return json({ error: 'not_found' }, 404);
   const e = JSON.parse(raw);
-  if (e.remaining < cost) return json({ error: 'insufficient_tokens', remaining: e.remaining }, 402);
+  if (e.remaining < cost) return json({ error: 'insufficient', remaining: e.remaining }, 402);
   e.remaining -= cost; await env.ENTITLEMENTS.put(`ent:${code}`, JSON.stringify(e));
   return json({ code: e.code, spent: cost, remaining: e.remaining });
 }
 
-// 自建出图 playground：查钱包 → 调 Modal endpoint 出图 → 成功才扣 token（计量）
+// 自建出图：查钱包 → 调 Modal endpoint 出图 → 成功才扣积分
 async function play(request, env) {
   if (!env.ENTITLEMENTS) return json({ error: 'kv_unavailable' }, 503);
   if (!env.MODAL_PLAY_URL || !env.PLAY_TOKEN) return json({ error: 'play_not_configured' }, 503);
@@ -88,7 +71,7 @@ async function play(request, env) {
   const raw = await env.ENTITLEMENTS.get(`ent:${code}`);
   if (!raw) return json({ error: 'no_wallet', message: '钱包为空，先充值' }, 404);
   const e = JSON.parse(raw);
-  if (e.remaining < IMAGE_COST) return json({ error: 'insufficient_tokens', remaining: e.remaining, need: IMAGE_COST }, 402);
+  if (e.remaining < IMAGE_COST) return json({ error: 'insufficient', remaining: e.remaining, need: IMAGE_COST }, 402);
   let r;
   try { r = await fetch(env.MODAL_PLAY_URL, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ token: env.PLAY_TOKEN, prompt }) }); }
   catch (err) { return json({ error: 'upstream_unreachable' }, 502); }
@@ -102,11 +85,10 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url), p = url.pathname, m = request.method;
     if (p === '/api/play' && m === 'POST') return play(request, env);
-    if (p === '/api/admin/grant' && m === 'POST') return adminGrant(request, env);
     if (p === '/api/points/redeem' && m === 'POST') return redeemPoints(request, env);
     if (p === '/api/balance' && m === 'GET') return getBalance(url, env);
-    if (p === '/api/redeem' && m === 'POST') return redeemTokens(request, env);
-    if (p === '/api/config' && m === 'GET') return json({ mode: 'offline+points', tokensPerUsd: TOKENS_PER_USD, tokensPerPoint: TOKENS_PER_POINT, imageCost: IMAGE_COST, play: !!(env.MODAL_PLAY_URL && env.PLAY_TOKEN) });
+    if (p === '/api/redeem' && m === 'POST') return redeemCredits(request, env);
+    if (p === '/api/config' && m === 'GET') return json({ mode: 'offline+points', usdPerCredit: USD_PER_CREDIT, pointsPerCredit: POINTS_PER_CREDIT, imageCost: IMAGE_COST, play: !!(env.MODAL_PLAY_URL && env.PLAY_TOKEN) });
     if (p.startsWith('/api/')) return json({ error: 'not_found' }, 404);
     return env.ASSETS.fetch(request);
   },

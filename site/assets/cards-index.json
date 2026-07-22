@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "count": 12,
+  "count": 13,
   "cards": [
     {
       "slug": "chat-with-your-pdf",
@@ -288,6 +288,34 @@
         "repo": "https://github.com/e2b-dev/fragments"
       },
       "companion": "doris-smile",
+      "status": "review"
+    },
+    {
+      "slug": "text-to-image",
+      "title": {
+        "zh": "一句话变一张图",
+        "en": "A sentence becomes an image",
+        "th": "ประโยคเดียวเป็นภาพ"
+      },
+      "category": "drawing",
+      "categoryLabel": "🎨 涂鸦成画",
+      "difficulty": "入门",
+      "ageBands": "人人",
+      "experiments": 3,
+      "summary": {
+        "zh": "输入一句话，AI 当场生成一张图 —— 这张卡的 playground 是我们自己搭的，出图按 token 计量。",
+        "en": "Type a sentence and AI makes an image on the spot — this card's playground is our own, metered by tokens.",
+        "th": "พิมพ์ประโยคหนึ่ง AI สร้างภาพทันที — playground ของการ์ดนี้เราสร้างเอง คิดค่าตามโทเคน"
+      },
+      "playground": {
+        "embed": "/play/text-to-image",
+        "selfHosted": true,
+        "url": "/play/text-to-image"
+      },
+      "source": {
+        "repo": "https://github.com/huggingface/diffusers"
+      },
+      "companion": "cherry-smile",
       "status": "review"
     },
     {
