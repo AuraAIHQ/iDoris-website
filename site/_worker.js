@@ -16,7 +16,7 @@ const PRICING = {
   usdPerLlmTok: 0.0000006,  // Workers AI 参考单价（把 LLM token 折成美元成本，≈$0.6/1M）
   coeff: { image: 1, chat: 1 }, // 特殊系数：某类调高就改这里（如以后 video: 3）
 };
-const CHAT_MODEL_DEFAULT = '@cf/meta/llama-3.1-8b-instruct';
+const CHAT_MODEL_DEFAULT = '@cf/meta/llama-3.3-70b-instruct-fp8-fast'; // 当前在架，多语(中/泰/英)质量好；可用 env.CHAT_MODEL 覆盖
 // 消耗(美元) → 应扣积分 = max(底线, ceil(成本 × 倍率 × 系数 / 单价))
 function creditsForUsd(usdCost, kind) {
   const coeff = PRICING.coeff[kind] || 1;
