@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en" data-lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>涂鸦变神龙 · Doodle to art · iDoris playground</title>
+<style>
+  :root{--paper:#F4F1EC;--ink:#26241f;--dim:#8a8578;--line:#d9d3c8;--orange:#FF5233;--cyan:#49C7E6;--green:#2Fae7e;--mono:ui-monospace,Menlo,monospace}
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%;background:var(--paper);color:var(--ink);font-family:var(--mono);-webkit-font-smoothing:antialiased}
+  body{padding:14px;max-width:720px;margin:0 auto}
+  .lang{position:fixed;right:10px;top:10px;display:flex;gap:4px;z-index:5}
+  .lang button{font:inherit;font-size:11px;padding:4px 8px;border:1px solid var(--line);background:#fff;color:var(--dim);border-radius:6px;cursor:pointer}
+  .lang button.on{border-color:var(--orange);color:var(--orange)}
+  h1{font-size:16px;margin:0 0 2px}
+  .sub{font-size:12px;color:var(--dim);margin:0 0 12px;line-height:1.5}
+  .wrap{display:flex;gap:14px;flex-wrap:wrap}
+  .col{flex:1;min-width:260px}
+  .lbl{font-size:11px;color:var(--dim);margin-bottom:5px;letter-spacing:.08em;text-transform:uppercase}
+  #pad{border:1px solid var(--line);border-radius:12px;background:#fff;touch-action:none;cursor:crosshair;width:100%;max-width:320px;aspect-ratio:1;display:block}
+  .out{border:1px solid var(--line);border-radius:12px;background:#fff;width:100%;max-width:320px;aspect-ratio:1;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
+  .out img{width:100%;height:100%;object-fit:contain}
+  .out .ph{color:var(--dim);font-size:12px;text-align:center;padding:20px}
+  .out .spin{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(244,241,236,.85);font-size:12px;color:var(--dim);flex-direction:column;gap:8px}
+  .tools{display:flex;gap:8px;margin-top:10px;align-items:center;flex-wrap:wrap}
+  .tools button{font:inherit;font-size:12px;padding:8px 12px;border:1px solid var(--line);background:#fff;color:var(--dim);border-radius:8px;cursor:pointer}
+  .tools button:hover{border-color:var(--orange);color:var(--orange)}
+  input.p{width:100%;font:inherit;font-size:14px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;margin-top:10px;background:#fff;color:var(--ink)}
+  .go{font:inherit;font-size:14px;padding:11px 16px;border:1px solid var(--orange);background:var(--orange);color:#fff;border-radius:10px;cursor:pointer;margin-top:10px;width:100%}
+  .go:disabled{opacity:.5;cursor:not-allowed}
+  .bar{font-size:11px;color:var(--dim);margin-top:8px;min-height:16px}
+  .foot{font-size:11px;color:var(--dim);margin-top:14px;line-height:1.6}
+  .foot b{color:var(--green)}
+</style>
+</head>
+<body>
+<div class="lang">
+  <button data-l="zh">中</button><button data-l="en" class="on">EN</button><button data-l="th">ไทย</button>
+</div>
+<h1 data-i="title">涂鸦变神龙</h1>
+<p class="sub" data-i="sub">左边随手画个草图（一条龙、一朵花、一只猫…），写一句你想要的样子，AI 把它补成一张完整的画。跑在我们自己的 GPU 上，按实际用量扣积分。</p>
+
+<div class="wrap">
+  <div class="col">
+    <div class="lbl" data-i="draw">① 画草图</div>
+    <canvas id="pad" width="512" height="512"></canvas>
+    <div class="tools">
+      <button id="clear" data-i="clear">🗑 清空</button>
+      <span data-i="brush">笔：</span>
+      <button class="bw" data-w="8">细</button><button class="bw" data-w="16">中</button><button class="bw" data-w="28">粗</button>
+    </div>
+  </div>
+  <div class="col">
+    <div class="lbl" data-i="result">② AI 补全</div>
+    <div class="out" id="out"><div class="ph" data-i="ph">画完点下面「变！」</div></div>
+    <div class="bar" id="bar">·</div>
+  </div>
+</div>
+
+<input class="p" id="prompt" data-i-ph="pph" placeholder="想要什么样子？如：一条威武的中国龙，水墨风">
+<button class="go" id="go" data-i="gobtn">✨ 变！</button>
+
+<p class="foot" data-i="foot"><b>怎么做到的：</b>你的线条被送进一个叫 ControlNet 的模型——它像描图纸，牢牢按住你画的轮廓；扩散模型（Stable Diffusion）再在这个轮廓里「长」出细节和颜色，同时听你那句话的风格要求。模型跑在<b>我们自己部署的 GPU（Modal）</b>上，出一张按实际耗时折算积分（最低 2 分）。这就是我们自建、可计量的出图后端 —— 不再跳第三方。</p>
+
+<script>
+(function(){
+  var I18N={
+    zh:{title:"涂鸦变神龙",sub:"左边随手画个草图（一条龙、一朵花、一只猫…），写一句你想要的样子，AI 把它补成一张完整的画。跑在我们自己的 GPU 上，按实际用量扣积分。",
+        draw:"① 画草图",result:"② AI 补全",clear:"🗑 清空",brush:"笔：",ph:"画完点下面「变！」",pph:"想要什么样子？如：一条威武的中国龙，水墨风",gobtn:"✨ 变！",
+        drawing:"AI 正在作画…（首次唤醒 GPU 稍久）",empty:"先画点东西再变",needTop:"余额不足（每张≥2积分），先去 /buy 充值",spent:"扣 %s 积分 · 余 %s",err:"出错了，稍后再试",bal:"余额 %s 积分",
+        foot:"<b>怎么做到的：</b>你的线条被送进一个叫 ControlNet 的模型——它像描图纸，牢牢按住你画的轮廓；扩散模型（Stable Diffusion）再在这个轮廓里「长」出细节和颜色，同时听你那句话的风格要求。模型跑在<b>我们自己部署的 GPU（Modal）</b>上，出一张按实际耗时折算积分（最低 2 分）。这就是我们自建、可计量的出图后端 —— 不再跳第三方。"},
+    en:{title:"Doodle to art",sub:"Sketch something rough on the left (a dragon, a flower, a cat…), type the look you want, and AI completes it into a full picture. Runs on our own GPU; credits by actual usage.",
+        draw:"① Sketch",result:"② AI completes it",clear:"🗑 Clear",brush:"Brush:",ph:"Sketch, then hit Transform",pph:"What should it look like? e.g. a majestic Chinese dragon, ink-wash style",gobtn:"✨ Transform!",
+        drawing:"AI is painting… (first run wakes the GPU, a bit slower)",empty:"Draw something first",needTop:"Not enough credits (≥2 each) — top up at /buy",spent:"−%s credits · %s left",err:"Something went wrong, try again",bal:"Balance %s credits",
+        foot:"<b>How it works:</b> Your lines go into a model called ControlNet — it acts like tracing paper, holding tight to your outline; a diffusion model (Stable Diffusion) then 'grows' detail and color inside that outline while following the style in your sentence. It runs on <b>our own deployed GPU (Modal)</b>; each image costs credits by actual time (min 2). Our own, meterable image backend — no more third-party."},
+    th:{title:"เปลี่ยนภาพวาดเป็นงานศิลป์",sub:"วาดคร่าว ๆ ทางซ้าย (มังกร ดอกไม้ แมว…) พิมพ์สไตล์ที่อยากได้ แล้ว AI จะเติมเป็นภาพเต็ม รันบน GPU ของเราเอง หักเครดิตตามการใช้จริง",
+        draw:"① วาด",result:"② AI เติมให้",clear:"🗑 ล้าง",brush:"พู่กัน:",ph:"วาดแล้วกดแปลง",pph:"อยากให้เป็นแบบไหน? เช่น มังกรจีนสง่างาม สไตล์หมึกจีน",gobtn:"✨ แปลง!",
+        drawing:"AI กำลังวาด… (ครั้งแรกปลุก GPU ช้าหน่อย)",empty:"วาดอะไรก่อน",needTop:"เครดิตไม่พอ (ภาพละ ≥2) — เติมที่ /buy",spent:"−%s เครดิต · เหลือ %s",err:"เกิดข้อผิดพลาด ลองใหม่",bal:"ยอด %s เครดิต",
+        foot:"<b>ทำงานอย่างไร:</b> เส้นของคุณถูกส่งไปยังโมเดล ControlNet ที่ยึดโครงร่างของคุณไว้ แล้ว Stable Diffusion เติมรายละเอียดและสีตามสไตล์ในประโยคของคุณ รันบน <b>GPU ที่เราติดตั้งเอง (Modal)</b> หักเครดิตตามเวลาจริง (ขั้นต่ำ 2) แบ็กเอนด์ออกภาพของเราเอง วัดได้ ไม่ต้องพึ่งบุคคลที่สาม"}
+  };
+  var lang="en", W=null, busy=false, brush=16;
+  function q(s){return document.querySelector(s);} function qa(s){return document.querySelectorAll(s);}
+  function d(){return I18N[lang];}
+  function wallet(){ var w=null; try{w=localStorage.getItem('idoris_wallet');}catch(e){}
+    if(!/^[a-f0-9]{12,40}$/.test(w||'')){ w=(crypto.randomUUID?crypto.randomUUID().replace(/-/g,''):(Date.now().toString(16)+Math.floor(Math.random()*1e12).toString(16))).slice(0,24); try{localStorage.setItem('idoris_wallet',w);}catch(e){} } return w; }
+  W=wallet();
+  function applyLang(){ var t=d();
+    qa("[data-i]").forEach(function(el){ var k=el.getAttribute("data-i"); if(t[k]!=null) el.innerHTML=t[k]; });
+    qa("[data-i-ph]").forEach(function(el){ var k=el.getAttribute("data-i-ph"); if(t[k]!=null) el.placeholder=t[k]; });
+    document.documentElement.lang=lang;
+    qa(".lang button").forEach(function(b){ b.classList.toggle("on", b.getAttribute("data-l")===lang); });
+  }
+  try{ var ul=new URLSearchParams(location.search).get("lang"); if(ul&&I18N[ul]) lang=ul; }catch(e){}
+  qa(".lang button").forEach(function(b){ b.onclick=function(){ lang=b.getAttribute("data-l"); applyLang(); loadBal(); }; });
+
+  var pad=q("#pad"), ctx=pad.getContext("2d");
+  function reset(){ ctx.fillStyle="#fff"; ctx.fillRect(0,0,512,512); } reset();
+  ctx.lineCap="round"; ctx.lineJoin="round"; ctx.strokeStyle="#111";
+  var drawing=false, last=null, dirty=false;
+  function P(e){ var r=pad.getBoundingClientRect(), t=e.touches?e.touches[0]:e; return {x:(t.clientX-r.left)*(512/r.width), y:(t.clientY-r.top)*(512/r.height)}; }
+  function down(e){ drawing=true; last=P(e); dirty=true; e.preventDefault(); }
+  function move(e){ if(!drawing) return; var p=P(e); ctx.lineWidth=brush; ctx.beginPath(); ctx.moveTo(last.x,last.y); ctx.lineTo(p.x,p.y); ctx.stroke(); last=p; e.preventDefault(); }
+  function up(){ drawing=false; }
+  pad.addEventListener("mousedown",down); pad.addEventListener("mousemove",move); window.addEventListener("mouseup",up);
+  pad.addEventListener("touchstart",down,{passive:false}); pad.addEventListener("touchmove",move,{passive:false}); window.addEventListener("touchend",up);
+  q("#clear").onclick=function(){ reset(); dirty=false; };
+  qa(".bw").forEach(function(b){ b.onclick=function(){ brush=parseInt(b.getAttribute("data-w"),10); qa(".bw").forEach(function(x){x.style.borderColor="";x.style.color="";}); b.style.borderColor="var(--orange)"; b.style.color="var(--orange)"; }; });
+
+  function loadBal(){ fetch('/api/balance?code='+encodeURIComponent(W)).then(function(r){return r.json();}).then(function(x){ q("#bar").textContent=d().bal.replace("%s",(x.remaining||0).toLocaleString()); }).catch(function(){}); }
+
+  q("#go").onclick=async function(){
+    if(busy) return;
+    if(!dirty){ q("#bar").textContent=d().empty; return; }
+    busy=true; q("#go").disabled=true;
+    q("#out").innerHTML='<div class="spin">🎨<span>'+d().drawing+'</span></div>';
+    try{
+      var r=await fetch('/api/doodle',{method:'POST',headers:{'content-type':'application/json'},
+        body:JSON.stringify({code:W, prompt:q("#prompt").value.slice(0,400), image:pad.toDataURL('image/png')})});
+      var x=await r.json();
+      if(!r.ok){ q("#out").innerHTML='<div class="ph">'+((x.error==='insufficient'||x.error==='no_wallet')?d().needTop:(x.detail||d().err))+'</div>'; busy=false; q("#go").disabled=false; loadBal(); return; }
+      q("#out").innerHTML='<img src="'+x.image+'" alt="result">';
+      q("#bar").textContent=d().spent.replace("%s",x.spent).replace("%s",(x.remaining||0).toLocaleString());
+    }catch(e){ q("#out").innerHTML='<div class="ph">'+d().err+'</div>'; }
+    busy=false; q("#go").disabled=false;
+  };
+
+  applyLang(); loadBal();
+})();
+</script>
+</body>
+</html>
