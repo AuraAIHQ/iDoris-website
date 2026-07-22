@@ -166,10 +166,36 @@ async function doodle(request, env) {
   return json({ image: d.image, spent, remaining: e.remaining, gpu_sec: d.gpu_sec });
 }
 
+// 文本嵌入（RAG 检索用）：查钱包做门槛(余额≥底线，不扣费——嵌入成本低，计费只在答案) → 调 Workers AI 嵌入模型
+// 返回向量给浏览器做本地余弦检索，无需 Vectorize、无每用户服务端存储。
+async function embed(request, env) {
+  if (!env.ENTITLEMENTS) return json({ error: 'kv_unavailable' }, 503);
+  if (!env.AI) return json({ error: 'chat_not_configured' }, 503);
+  const body = await readJson(request);
+  const code = String(body?.code || '');
+  if (!validWallet(code)) return json({ error: 'bad_code' }, 400);
+  let texts = Array.isArray(body?.texts) ? body.texts : null;
+  if (!texts || !texts.length) return json({ error: 'bad_request' }, 400);
+  texts = texts.slice(0, 100).map(t => String(t || '').slice(0, 2000)).filter(Boolean);
+  if (!texts.length) return json({ error: 'bad_request' }, 400);
+  const raw = await env.ENTITLEMENTS.get(`ent:${code}`);
+  if (!raw) return json({ error: 'no_wallet', message: '钱包为空，先充值' }, 404);
+  const e = JSON.parse(raw);
+  if (e.remaining < PRICING.floorCredits) return json({ error: 'insufficient', remaining: e.remaining, need: PRICING.floorCredits }, 402);
+  const model = env.EMBED_MODEL || '@cf/baai/bge-m3';
+  let out;
+  try { out = await env.AI.run(model, { text: texts }); }
+  catch (err) { return json({ error: 'embed_upstream', detail: String(err && err.message || err) }, 502); }
+  const vectors = (out && (out.data || (out.result && out.result.data))) || null;
+  if (!vectors || !vectors.length) return json({ error: 'embed_failed' }, 502);
+  return json({ vectors, model });
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url), p = url.pathname, m = request.method;
     if (p === '/api/chat' && m === 'POST') return chat(request, env);
+    if (p === '/api/embed' && m === 'POST') return embed(request, env);
     if (p === '/api/doodle' && m === 'POST') return doodle(request, env);
     if (p === '/api/play' && m === 'POST') return play(request, env);
     if (p === '/api/points/redeem' && m === 'POST') return redeemPoints(request, env);
