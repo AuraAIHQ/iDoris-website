@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en" data-lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI 猜猜我画的啥 · Quick draw guess · iDoris playground</title>
+<style>
+  :root{--paper:#F4F1EC;--ink:#26241f;--dim:#8a8578;--line:#d9d3c8;--orange:#FF5233;--cyan:#49C7E6;--green:#2Fae7e;--mono:ui-monospace,Menlo,monospace}
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%;background:var(--paper);color:var(--ink);font-family:var(--mono);-webkit-font-smoothing:antialiased}
+  body{padding:14px;max-width:620px;margin:0 auto}
+  .lang{position:fixed;right:10px;top:10px;display:flex;gap:4px;z-index:5}
+  .lang button{font:inherit;font-size:11px;padding:4px 8px;border:1px solid var(--line);background:#fff;color:var(--dim);border-radius:6px;cursor:pointer}
+  .lang button.on{border-color:var(--orange);color:var(--orange)}
+  h1{font-size:16px;margin:0 0 2px}
+  .sub{font-size:12px;color:var(--dim);margin:0 0 12px;line-height:1.5}
+  .wrap{display:flex;gap:14px;flex-wrap:wrap}
+  .canvasbox{position:relative;flex:0 0 auto}
+  #pad{border:1px solid var(--line);border-radius:12px;background:#fff;touch-action:none;cursor:crosshair;width:280px;height:280px;max-width:70vw;max-height:70vw}
+  .load{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(244,241,236,.9);border-radius:12px;font-size:12px;color:var(--dim);text-align:center;padding:16px}
+  .guesses{flex:1;min-width:180px}
+  .guesses .lead{font-size:12px;color:var(--dim);margin-bottom:8px}
+  .g{margin-bottom:10px}
+  .g .row{display:flex;justify-content:space-between;font-size:13px;margin-bottom:3px}
+  .g .row b{color:var(--ink)}
+  .g .row .p{color:var(--dim)}
+  .g .bar{height:8px;border-radius:4px;background:#eee;overflow:hidden}
+  .g .bar>i{display:block;height:100%;width:0;background:var(--cyan);transition:width .18s}
+  .g:first-child .bar>i{background:var(--orange)}
+  .g:first-child .row b{color:var(--orange);font-size:16px}
+  .tools{display:flex;gap:8px;margin-top:12px}
+  .tools button{font:inherit;font-size:12px;padding:8px 14px;border:1px solid var(--line);background:#fff;color:var(--dim);border-radius:8px;cursor:pointer}
+  .tools button:hover{border-color:var(--orange);color:var(--orange)}
+  .foot{font-size:11px;color:var(--dim);margin-top:12px;line-height:1.6}
+  .foot b{color:var(--green)}
+</style>
+</head>
+<body>
+<div class="lang">
+  <button data-l="zh">中</button><button data-l="en" class="on">EN</button><button data-l="th">ไทย</button>
+</div>
+<h1 data-i="title">AI 猜猜我画的啥</h1>
+<p class="sub" data-i="sub">在左边随手画一个东西（房子、猫、香蕉…），AI 一边看一边猜。它认得 345 种涂鸦。模型就放在我们自己的网站上，识别全程在你浏览器里跑。</p>
+
+<div class="wrap">
+  <div class="canvasbox">
+    <canvas id="pad" width="280" height="280"></canvas>
+    <div class="load" id="load" data-i="loading">正在加载涂鸦识别模型…（约 2MB，只需一次）</div>
+  </div>
+  <div class="guesses">
+    <div class="lead" data-i="lead">AI 猜：</div>
+    <div id="out"></div>
+  </div>
+</div>
+<div class="tools">
+  <button id="clear" data-i="clear">🗑 清空重画</button>
+</div>
+
+<p class="foot" data-i="foot"><b>怎么做到的：</b>你的画被缩成一张 28×28 的小图，交给一个卷积神经网络（DoodleNet，用 Google「快画」几百万张涂鸦训练过）。它对 345 类各打一个分，最高的就是它的猜测。<b>模型文件托管在我们自己的服务器上、识别在你浏览器里跑</b>——不占积分、不联外部网站。</p>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
+<script>
+(function(){
+  var I18N={
+    zh:{title:"AI 猜猜我画的啥",sub:"在左边随手画一个东西（房子、猫、香蕉…），AI 一边看一边猜。它认得 345 种涂鸦。模型就放在我们自己的网站上，识别全程在你浏览器里跑。",
+        loading:"正在加载涂鸦识别模型…（约 2MB，只需一次）",lead:"AI 猜：",clear:"🗑 清空重画",draw:"画点东西，我来猜…",
+        foot:"<b>怎么做到的：</b>你的画被缩成一张 28×28 的小图，交给一个卷积神经网络（DoodleNet，用 Google「快画」几百万张涂鸦训练过）。它对 345 类各打一个分，最高的就是它的猜测。<b>模型文件托管在我们自己的服务器上、识别在你浏览器里跑</b>——不占积分、不联外部网站。"},
+    en:{title:"Let AI guess your doodle",sub:"Scribble something on the left (house, cat, banana…) and the AI guesses as you draw. It knows 345 kinds of doodles. The model is hosted on our own site; recognition runs in your browser.",
+        loading:"Loading the doodle model… (~2MB, once only)",lead:"AI guesses:",clear:"🗑 Clear & redraw",draw:"Draw something and I'll guess…",
+        foot:"<b>How it works:</b> Your drawing is shrunk to a 28×28 image and fed to a convolutional neural network (DoodleNet, trained on millions of Google 'Quick, Draw!' sketches). It scores all 345 classes; the highest is its guess. <b>The model is hosted on our own server and recognition runs in your browser</b> — no credits, no external site."},
+    th:{title:"ให้ AI ทายภาพวาดของคุณ",sub:"วาดอะไรสักอย่างทางซ้าย (บ้าน แมว กล้วย…) แล้ว AI จะทายไปด้วย มันรู้จักภาพวาด 345 แบบ โมเดลอยู่บนเว็บของเราเอง การรู้จำทำในเบราว์เซอร์",
+        loading:"กำลังโหลดโมเดล… (~2MB ครั้งเดียว)",lead:"AI ทาย:",clear:"🗑 ล้างแล้ววาดใหม่",draw:"วาดอะไรสักอย่าง แล้วฉันจะทาย…",
+        foot:"<b>ทำงานอย่างไร:</b> ภาพของคุณถูกย่อเป็น 28×28 แล้วป้อนให้โครงข่าย CNN (DoodleNet ฝึกด้วยภาพวาด Google 'Quick, Draw!' หลายล้านภาพ) มันให้คะแนนทั้ง 345 คลาส คะแนนสูงสุดคือคำทาย <b>โมเดลอยู่บนเซิร์ฟเวอร์ของเราและรู้จำในเบราว์เซอร์</b> — ไม่ใช้เครดิต ไม่ต่อเว็บภายนอก"}
+  };
+  var lang="en";
+  function q(s){return document.querySelector(s);} function qa(s){return document.querySelectorAll(s);}
+  function applyLang(){ var d=I18N[lang];
+    qa("[data-i]").forEach(function(el){ var k=el.getAttribute("data-i"); if(d[k]!=null) el.innerHTML=d[k]; });
+    document.documentElement.lang=lang;
+    qa(".lang button").forEach(function(b){ b.classList.toggle("on", b.getAttribute("data-l")===lang); });
+    if(!drawn) out.innerHTML='<div class="lead" style="color:var(--dim)">'+d.draw+'</div>';
+  }
+  try{ var ul=new URLSearchParams(location.search).get("lang"); if(ul&&I18N[ul]) lang=ul; }catch(e){}
+
+  var pad=q("#pad"), ctx=pad.getContext("2d",{willReadFrequently:true}), out=q("#out"), load=q("#load");
+  var model=null, CLASSES=[], drawn=false, off=document.createElement("canvas");
+  off.width=28; off.height=28; var octx=off.getContext("2d",{willReadFrequently:true});
+  function reset(){ ctx.fillStyle="#fff"; ctx.fillRect(0,0,280,280); }
+  reset();
+  ctx.lineWidth=16; ctx.lineCap="round"; ctx.lineJoin="round"; ctx.strokeStyle="#111";
+
+  // 绘画
+  var drawing=false, last=null;
+  function P(e){ var r=pad.getBoundingClientRect(), t=e.touches?e.touches[0]:e;
+    return {x:(t.clientX-r.left)*(280/r.width), y:(t.clientY-r.top)*(280/r.height)}; }
+  function down(e){ drawing=true; last=P(e); drawn=true; e.preventDefault(); }
+  function move(e){ if(!drawing) return; var p=P(e);
+    ctx.beginPath(); ctx.moveTo(last.x,last.y); ctx.lineTo(p.x,p.y); ctx.stroke(); last=p; e.preventDefault(); schedulePredict(); }
+  function up(){ if(drawing){ drawing=false; predict(); } }
+  pad.addEventListener("mousedown",down); pad.addEventListener("mousemove",move); window.addEventListener("mouseup",up);
+  pad.addEventListener("touchstart",down,{passive:false}); pad.addEventListener("touchmove",move,{passive:false}); window.addEventListener("touchend",up);
+
+  var pend=null;
+  function schedulePredict(){ if(pend) return; pend=setTimeout(function(){ pend=null; predict(); },220); }
+
+  function predict(){
+    if(!model||!drawn) return;
+    octx.fillStyle="#fff"; octx.fillRect(0,0,28,28);
+    octx.drawImage(pad,0,0,28,28);
+    var im=octx.getImageData(0,0,28,28).data;
+    var vals=new Float32Array(28*28);
+    for(var i=0;i<28*28;i++){ var bright=(im[i*4]+im[i*4+1]+im[i*4+2])/3; vals[i]=(255-bright)/255; }
+    var top=tf.tidy(function(){
+      var x=tf.tensor(vals,[1,28,28,1]);
+      var y=model.predict(x);
+      return y.dataSync();
+    });
+    // top-3
+    var idx=Array.from(top.keys()).sort(function(a,b){return top[b]-top[a];}).slice(0,3);
+    out.innerHTML=idx.map(function(k,rank){
+      var name=(CLASSES[k]||("#"+k)).replace(/_/g," ");
+      var pct=Math.round(top[k]*100);
+      return '<div class="g"><div class="row"><b>'+name+'</b><span class="p">'+pct+'%</span></div>'
+           + '<div class="bar"><i style="width:'+pct+'%"></i></div></div>';
+    }).join("");
+  }
+
+  q("#clear").onclick=function(){ reset(); drawn=false; applyLang(); };
+
+  // 加载模型 + 类名（都在我们自己的 assets 上）
+  Promise.all([
+    tf.loadLayersModel("/assets/models/doodlenet/model.json"),
+    fetch("/assets/models/doodlenet/class_names.txt").then(function(r){return r.text();})
+  ]).then(function(res){
+    model=res[0];
+    CLASSES=res[1].split("\n").map(function(s){return s.trim();}).filter(Boolean);
+    load.style.display="none"; applyLang();
+    // 预热
+    tf.tidy(function(){ model.predict(tf.zeros([1,28,28,1])).dataSync(); });
+  }).catch(function(e){ load.textContent="模型加载失败 / model load failed: "+(e.message||e); });
+
+  qa(".lang button").forEach(function(b){ b.onclick=function(){ lang=b.getAttribute("data-l"); applyLang(); }; });
+  applyLang();
+})();
+</script>
+</body>
+</html>
