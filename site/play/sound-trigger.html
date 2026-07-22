@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en" data-lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>拍手就触发 · Sound trigger · iDoris playground</title>
+<style>
+  :root{--paper:#F4F1EC;--ink:#26241f;--dim:#8a8578;--line:#d9d3c8;--orange:#FF5233;--cyan:#49C7E6;--green:#2Fae7e;--mono:ui-monospace,Menlo,monospace}
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%;background:var(--paper);color:var(--ink);font-family:var(--mono);-webkit-font-smoothing:antialiased}
+  body{padding:14px;max-width:600px;margin:0 auto}
+  .lang{position:fixed;right:10px;top:10px;display:flex;gap:4px;z-index:5}
+  .lang button{font:inherit;font-size:11px;padding:4px 8px;border:1px solid var(--line);background:#fff;color:var(--dim);border-radius:6px;cursor:pointer}
+  .lang button.on{border-color:var(--orange);color:var(--orange)}
+  h1{font-size:16px;margin:0 0 2px}
+  .sub{font-size:12px;color:var(--dim);margin:0 0 14px;line-height:1.5}
+  .flash{position:relative;height:150px;border:1px solid var(--line);border-radius:12px;background:#1a1a22;display:flex;align-items:center;justify-content:center;overflow:hidden;transition:background .1s}
+  .flash.hit{background:var(--orange)}
+  .flash .big{font-size:52px}
+  .flash .cnt{position:absolute;left:12px;top:10px;color:#fff;font-size:12px}
+  .flash .lvl{position:absolute;left:0;bottom:0;height:5px;background:var(--cyan);width:0;transition:width .1s}
+  .grid{display:flex;gap:10px;margin-top:12px}
+  .box{flex:1;border:1px solid var(--line);border-radius:10px;background:#fff;padding:12px;text-align:center}
+  .box b{display:block;font-size:14px;margin-bottom:6px}
+  .box .c{font-size:11px;color:var(--dim);margin-bottom:8px}
+  button.b{font:inherit;font-size:12px;width:100%;padding:9px;border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:8px;cursor:pointer}
+  button.b:hover:not(:disabled){border-color:var(--orange);color:var(--orange)}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  .tools{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;align-items:center}
+  .tools button{font:inherit;font-size:12px;padding:9px 14px;border:1px solid var(--line);background:#fff;color:var(--dim);border-radius:8px;cursor:pointer}
+  .train{border-color:var(--orange)!important;color:#fff!important;background:var(--orange)!important}
+  .tools button:disabled{opacity:.45}
+  .status{font-size:12px;color:var(--dim);margin-top:10px;min-height:18px}
+  .start{font-size:13px;padding:10px 18px;border:1px solid var(--orange);color:#fff;background:var(--orange);border-radius:8px;cursor:pointer;font-family:inherit}
+  .foot{font-size:11px;color:var(--dim);margin-top:12px;line-height:1.6}
+  .foot b{color:var(--green)}
+</style>
+</head>
+<body>
+<div class="lang">
+  <button data-l="zh">中</button><button data-l="en" class="on">EN</button><button data-l="th">ไทย</button>
+</div>
+<h1 data-i="title">拍手就触发</h1>
+<p class="sub" data-i="sub">录几下你的触发音（拍手/口哨），再录几段安静，训练一下 —— 之后它一听到就亮灯计数。声音变成「声谱图」，AI 当图来认。全程在你浏览器里跑。</p>
+
+<div class="flash" id="flash">
+  <div class="cnt" id="hits" style="display:none">0</div>
+  <div class="big" id="face">🔇</div>
+  <div class="lvl" id="lvl"></div>
+</div>
+
+<div id="startWrap" style="text-align:center;margin-top:14px">
+  <button class="start" id="startBtn" data-i="start">▶ 开启麦克风</button>
+  <div id="loadMsg" style="display:none;color:var(--dim);font-size:12px;margin-top:8px" data-i="loading">正在加载音频模型…（约几秒）</div>
+</div>
+
+<div id="panel" style="display:none">
+  <div class="grid">
+    <div class="box">
+      <b>👏 <span data-i="nTrig">触发音</span></b>
+      <div class="c"><span id="cT">0</span> <span data-i="clips">段</span></div>
+      <button class="b" id="recT" data-i="recTrig">录一段触发音</button>
+    </div>
+    <div class="box">
+      <b>🤫 <span data-i="nBg">安静/背景</span></b>
+      <div class="c"><span id="cB">0</span> <span data-i="clips">段</span></div>
+      <button class="b" id="recB" data-i="recBg">录一段安静</button>
+    </div>
+  </div>
+  <div class="tools">
+    <button id="trainBtn" class="train" disabled data-i="train">训练（两边各≥8段）</button>
+    <button id="reset" disabled data-i="reset">清空重来</button>
+  </div>
+  <div class="status" id="status"></div>
+</div>
+
+<p class="foot" data-i="foot"><b>怎么做到的：</b>麦克风每一小段声音被转成一张「声谱图」（横轴时间、纵轴音高、越亮越响）。于是「听声音」变成了 AI 擅长的「看图」。你录的样例训练一个小分类器，之后它把当前这张声谱图跟触发音比对，够像就触发。<b>零 token、零算力钱</b>，整套在你这台设备的浏览器里跑，麦克风声音不外传。</p>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.21.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/speech-commands@0.5.4/dist/speech-commands.min.js"></script>
+<script>
+(function(){
+  var I18N={
+    zh:{title:"拍手就触发",sub:"录几下你的触发音（拍手/口哨），再录几段安静，训练一下 —— 之后它一听到就亮灯计数。声音变成「声谱图」，AI 当图来认。全程在你浏览器里跑。",
+        start:"▶ 开启麦克风",loading:"正在加载音频模型…（约几秒）",nTrig:"触发音",nBg:"安静/背景",clips:"段",
+        recTrig:"录一段触发音",recBg:"录一段安静",train:"训练（两边各≥8段）",reset:"清空重来",
+        recording:"录音中…发出声音",trained:"训练完成！发出触发音试试 →",training:"训练中…",listening:"在听…",
+        needMore:"两边各录满 8 段再训练",nomic:"打不开麦克风：请允许权限或换浏览器。",trig:"触发！",
+        foot:"<b>怎么做到的：</b>麦克风每一小段声音被转成一张「声谱图」（横轴时间、纵轴音高、越亮越响）。于是「听声音」变成了 AI 擅长的「看图」。你录的样例训练一个小分类器，之后它把当前这张声谱图跟触发音比对，够像就触发。<b>零 token、零算力钱</b>，整套在你这台设备的浏览器里跑，麦克风声音不外传。"},
+    en:{title:"Clap to trigger",sub:"Record your trigger sound (clap/whistle) a few times, record some quiet, train — then it lights up and counts whenever it hears it. Sound becomes a 'spectrogram' the AI reads as an image. All in your browser.",
+        start:"▶ Start microphone",loading:"Loading the audio model… (a few seconds)",nTrig:"Trigger sound",nBg:"Quiet / background",clips:"clips",
+        recTrig:"Record a trigger clip",recBg:"Record a quiet clip",train:"Train (8+ each side)",reset:"Clear & redo",
+        recording:"Recording… make the sound",trained:"Trained! Make the trigger sound →",training:"Training…",listening:"listening…",
+        needMore:"Record 8 clips on each side first",nomic:"Can't open mic: allow permission or try another browser.",trig:"TRIGGER!",
+        foot:"<b>How it works:</b> Each short slice of mic sound becomes a 'spectrogram' (x=time, y=pitch, brighter=louder). So 'listening' turns into 'looking at an image', which AI is good at. Your samples train a tiny classifier; then it compares the current spectrogram to the trigger and fires if similar enough. <b>Zero tokens, zero compute cost</b> — it all runs in your device's browser, mic audio never leaves."},
+    th:{title:"ปรบมือแล้วทริกเกอร์",sub:"อัดเสียงทริกเกอร์ (ปรบมือ/ผิวปาก) สองสามครั้ง อัดเสียงเงียบสองสามครั้ง แล้วฝึก — จากนั้นพอได้ยินก็จะสว่างและนับ เสียงกลายเป็น 'สเปกโตรแกรม' ที่ AI อ่านเป็นภาพ ทั้งหมดในเบราว์เซอร์",
+        start:"▶ เปิดไมโครโฟน",loading:"กำลังโหลดโมเดลเสียง… (ไม่กี่วินาที)",nTrig:"เสียงทริกเกอร์",nBg:"เงียบ/พื้นหลัง",clips:"คลิป",
+        recTrig:"อัดคลิปทริกเกอร์",recBg:"อัดคลิปเงียบ",train:"ฝึก (ฝั่งละ 8+)",reset:"ล้างแล้วเริ่มใหม่",
+        recording:"กำลังอัด… ส่งเสียง",trained:"ฝึกเสร็จ! ลองส่งเสียงทริกเกอร์ →",training:"กำลังฝึก…",listening:"กำลังฟัง…",
+        needMore:"อัดฝั่งละ 8 คลิปก่อนฝึก",nomic:"เปิดไมค์ไม่ได้: อนุญาตสิทธิ์หรือลองเบราว์เซอร์อื่น",trig:"ทริกเกอร์!",
+        foot:"<b>ทำงานอย่างไร:</b> เสียงแต่ละช่วงสั้นกลายเป็น 'สเปกโตรแกรม' (x=เวลา y=ระดับเสียง สว่าง=ดัง) 'การฟัง' จึงกลายเป็น 'การดูภาพ' ที่ AI ถนัด ตัวอย่างของคุณฝึกตัวจำแนกเล็ก แล้วเทียบสเปกโตรแกรมปัจจุบันกับทริกเกอร์ <b>ไม่ใช้โทเคน ไม่มีค่าประมวลผล</b> รันในเบราว์เซอร์ เสียงไมค์ไม่ออกไปไหน"}
+  };
+  var TRIG="trigger", BG="_background_noise_";
+  var lang="en";
+  function q(s){return document.querySelector(s);} function qa(s){return document.querySelectorAll(s);}
+  function applyLang(){ var d=I18N[lang];
+    qa("[data-i]").forEach(function(el){ var k=el.getAttribute("data-i"); if(d[k]!=null) el.innerHTML=d[k]; });
+    document.documentElement.lang=lang;
+    qa(".lang button").forEach(function(b){ b.classList.toggle("on", b.getAttribute("data-l")===lang); });
+  }
+  try{ var ul=new URLSearchParams(location.search).get("lang"); if(ul&&I18N[ul]) lang=ul; }catch(e){}
+  qa(".lang button").forEach(function(b){ b.onclick=function(){ lang=b.getAttribute("data-l"); applyLang(); }; });
+  applyLang();
+
+  var startBtn=q("#startBtn"), loadMsg=q("#loadMsg"), startWrap=q("#startWrap"), panel=q("#panel");
+  var status=q("#status"), flash=q("#flash"), face=q("#face"), hits=q("#hits"), lvl=q("#lvl");
+  var cT=q("#cT"), cB=q("#cB"), recT=q("#recT"), recB=q("#recB"), trainBtn=q("#trainBtn"), reset=q("#reset");
+  var base=null, tr=null, counts={}, busy=false, hitN=0, listening=false;
+  counts[TRIG]=0; counts[BG]=0;
+
+  function refresh(){
+    cT.textContent=counts[TRIG]; cB.textContent=counts[BG];
+    trainBtn.disabled=!(counts[TRIG]>=8 && counts[BG]>=8) || busy;
+    reset.disabled=busy;
+  }
+  async function start(){
+    loadMsg.style.display="block"; startBtn.style.display="none";
+    try{
+      base=speechCommands.create("BROWSER_FFT");
+      await base.ensureModelLoaded();
+      tr=base.createTransfer("sound-trigger");
+    }catch(e){ startWrap.innerHTML='<div style="color:#c0392b">'+I18N[lang].nomic+'</div>'; return; }
+    startWrap.style.display="none"; panel.style.display="block"; face.textContent="👂"; refresh();
+  }
+  startBtn.onclick=start;
+
+  async function collect(word){
+    if(busy||!tr) return; busy=true; refresh();
+    status.textContent=I18N[lang].recording; flash.classList.add("hit");
+    try{
+      await tr.collectExample(word, word===BG?{durationSec:2}:undefined);
+      counts[word]++;
+    }catch(e){ status.textContent=String(e.message||e); }
+    flash.classList.remove("hit"); status.textContent=""; busy=false; refresh();
+  }
+  recT.onclick=function(){ collect(TRIG); };
+  recB.onclick=function(){ collect(BG); };
+
+  trainBtn.onclick=async function(){
+    if(busy||!tr) return; busy=true; refresh();
+    // 停止监听以便训练
+    if(listening){ try{await tr.stopListening();}catch(e){} listening=false; }
+    status.textContent=I18N[lang].training;
+    try{
+      await tr.train({epochs:30, callback:{onEpochEnd:function(ep,logs){ status.textContent=I18N[lang].training+" "+(ep+1)+"/30"; }}});
+      busy=false; refresh();
+      status.textContent=I18N[lang].trained; face.textContent="🎧"; hits.style.display="block";
+      var words=tr.wordLabels();
+      await tr.listen(function(res){
+        var i=words.indexOf(TRIG); var p=i>=0?res.scores[i]:0;
+        lvl.style.width=Math.round(p*100)+"%";
+        if(p>0.75){ hitN++; hits.textContent=hitN; face.textContent="⚡"; flash.classList.add("hit");
+          status.textContent=I18N[lang].trig;
+          setTimeout(function(){ flash.classList.remove("hit"); face.textContent="🎧"; status.textContent=I18N[lang].trained; },260); }
+      }, {includeSpectrogram:false, probabilityThreshold:0.75, overlapFactor:0.5, invokeCallbackOnNoiseAndUnknown:true});
+      listening=true;
+    }catch(e){ status.textContent=String(e.message||e); busy=false; refresh(); }
+  };
+  reset.onclick=async function(){
+    if(busy) return;
+    if(listening){ try{await tr.stopListening();}catch(e){} listening=false; }
+    try{ tr&&tr.clearExamples(); }catch(e){}
+    counts[TRIG]=0; counts[BG]=0; hitN=0; hits.textContent="0"; hits.style.display="none";
+    lvl.style.width="0%"; face.textContent="👂"; status.textContent=""; refresh();
+  };
+})();
+</script>
+</body>
+</html>

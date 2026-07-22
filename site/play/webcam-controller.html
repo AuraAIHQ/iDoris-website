@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en" data-lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>用身体控制 · Webcam controller · iDoris playground</title>
+<style>
+  :root{--paper:#F4F1EC;--ink:#26241f;--dim:#8a8578;--line:#d9d3c8;--orange:#FF5233;--cyan:#49C7E6;--mono:ui-monospace,Menlo,monospace}
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%;background:var(--paper);color:var(--ink);font-family:var(--mono);-webkit-font-smoothing:antialiased}
+  body{padding:14px;max-width:680px;margin:0 auto}
+  .lang{position:fixed;right:10px;top:10px;display:flex;gap:4px;z-index:5}
+  .lang button{font:inherit;font-size:11px;padding:4px 8px;border:1px solid var(--line);background:#fff;color:var(--dim);border-radius:6px;cursor:pointer}
+  .lang button.on{border-color:var(--orange);color:var(--orange)}
+  h1{font-size:16px;margin:0 0 2px}
+  .sub{font-size:12px;color:var(--dim);margin:0 0 12px;line-height:1.5}
+  .stage{position:relative;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#000;aspect-ratio:4/3}
+  video,canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+  video{display:block}
+  .veil{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;background:var(--paper);color:var(--dim);font-size:13px;text-align:center;padding:20px;z-index:3}
+  .cap{font:inherit;font-size:13px;padding:10px 18px;border:1px solid var(--orange);color:#fff;background:var(--orange);border-radius:8px;cursor:pointer}
+  .hud{position:absolute;left:0;right:0;top:0;padding:8px 12px;background:linear-gradient(180deg,rgba(0,0,0,.6),transparent);color:#fff;font-size:13px;z-index:2;display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+  .hud b{color:var(--cyan)}
+  .badge{font-size:20px;font-weight:600}
+  .game{position:absolute;right:12px;bottom:12px;width:96px;height:96px;border-radius:12px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.3);z-index:2;overflow:hidden}
+  .ball{position:absolute;width:26px;height:26px;border-radius:50%;background:var(--orange);left:35px;bottom:6px;transition:bottom .12s}
+  .foot{font-size:11px;color:var(--dim);margin-top:12px;line-height:1.6}
+  .foot b{color:#2Fae7e}
+</style>
+</head>
+<body>
+<div class="lang">
+  <button data-l="zh">中</button><button data-l="en" class="on">EN</button><button data-l="th">ไทย</button>
+</div>
+<h1 data-i="title">用身体控制</h1>
+<p class="sub" data-i="sub">举起右手过肩 = 跳；张开双臂 = 触发。AI 只负责认出你身体各关节在哪，动作规则是几行 if —— 全程在你浏览器里跑。</p>
+
+<div class="stage">
+  <video id="v" autoplay playsinline muted></video>
+  <canvas id="c"></canvas>
+  <div class="hud" id="hud" style="display:none">
+    <span data-i="pose">姿态</span>：<span class="badge" id="badge">—</span>
+    <span>· <span data-i="rwrist">右手腕</span> <b id="wy">–</b></span>
+  </div>
+  <div class="game" id="game" style="display:none"><div class="ball" id="ball"></div></div>
+  <div class="veil" id="veil">
+    <div data-i="need">开启摄像头，站远一点让镜头看到你上半身</div>
+    <button class="cap" id="startBtn" data-i="start">▶ 开启摄像头</button>
+    <div id="loadMsg" style="display:none" data-i="loading">正在加载姿态模型…（约几秒）</div>
+  </div>
+</div>
+<p class="foot" data-i="foot"><b>怎么做到的：</b>MoveNet 姿态模型把每帧画面里你身体的 17 个关键点（头/肩/肘/腕/髋/膝/踝）找出来，只吐坐标。屏幕上的骨架是把这些点连线画的。至于「右手腕高过右肩就算跳」，是我们写的几行 if —— AI 给坐标，你定规则。<b>零 token、零算力钱</b>，因为姿态识别就在你这台设备的浏览器里跑。</p>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection@2.1.3/dist/pose-detection.min.js"></script>
+<script>
+(function(){
+  var I18N={
+    zh:{title:"用身体控制",sub:"举起右手过肩 = 跳；张开双臂 = 触发。AI 只负责认出你身体各关节在哪，动作规则是几行 if —— 全程在你浏览器里跑。",
+        need:"开启摄像头，站远一点让镜头看到你上半身",start:"▶ 开启摄像头",loading:"正在加载姿态模型…（约几秒）",
+        pose:"姿态",rwrist:"右手腕",jump:"跳 JUMP",open:"张臂 OPEN",idle:"待命",nocam:"打不开摄像头：请允许权限或换浏览器。",
+        foot:"<b>怎么做到的：</b>MoveNet 姿态模型把每帧画面里你身体的 17 个关键点（头/肩/肘/腕/髋/膝/踝）找出来，只吐坐标。屏幕上的骨架是把这些点连线画的。至于「右手腕高过右肩就算跳」，是我们写的几行 if —— AI 给坐标，你定规则。<b>零 token、零算力钱</b>，因为姿态识别就在你这台设备的浏览器里跑。"},
+    en:{title:"Control it with your body",sub:"Raise your right hand above your shoulder = jump; open both arms = trigger. The AI only finds where your joints are; the action rules are a few if-statements — all in your browser.",
+        need:"Turn on the camera and step back so it sees your upper body",start:"▶ Start camera",loading:"Loading the pose model… (a few seconds)",
+        pose:"Pose",rwrist:"Right wrist",jump:"JUMP",open:"ARMS OPEN",idle:"idle",nocam:"Can't open camera: allow permission or try another browser.",
+        foot:"<b>How it works:</b> The MoveNet pose model finds your body's 17 keypoints (head/shoulder/elbow/wrist/hip/knee/ankle) each frame and only outputs coordinates. The skeleton is those points connected. Whether 'right wrist above right shoulder = jump' is a few if-statements we wrote — AI gives coordinates, you set the rules. <b>Zero tokens, zero compute cost</b>, because pose detection runs in your device's browser."},
+    th:{title:"ควบคุมด้วยร่างกาย",sub:"ยกมือขวาเหนือไหล่ = กระโดด; กางแขนสองข้าง = ทริกเกอร์ AI แค่หาว่าข้อต่ออยู่ตรงไหน กฎการกระทำคือ if ไม่กี่บรรทัด — รันในเบราว์เซอร์ทั้งหมด",
+        need:"เปิดกล้องแล้วถอยห่างให้เห็นช่วงบนของร่างกาย",start:"▶ เปิดกล้อง",loading:"กำลังโหลดโมเดลท่าทาง… (ไม่กี่วินาที)",
+        pose:"ท่าทาง",rwrist:"ข้อมือขวา",jump:"กระโดด",open:"กางแขน",idle:"รอ",nocam:"เปิดกล้องไม่ได้: อนุญาตสิทธิ์หรือลองเบราว์เซอร์อื่น",
+        foot:"<b>ทำงานอย่างไร:</b> โมเดล MoveNet หาจุดสำคัญ 17 จุดของร่างกาย (หัว/ไหล่/ศอก/ข้อมือ/สะโพก/เข่า/ข้อเท้า) ทุกเฟรม แล้วส่งแค่พิกัด โครงกระดูกคือจุดเหล่านั้นต่อกัน ส่วน 'ข้อมือขวาเหนือไหล่ = กระโดด' คือ if ไม่กี่บรรทัดที่เราเขียน — AI ให้พิกัด คุณตั้งกฎ <b>ไม่ใช้โทเคน ไม่มีค่าประมวลผล</b> เพราะรันในเบราว์เซอร์ของเครื่องคุณ"}
+  };
+  var lang="en";
+  function q(s){return document.querySelector(s);} function qa(s){return document.querySelectorAll(s);}
+  function applyLang(){ var d=I18N[lang];
+    qa("[data-i]").forEach(function(el){ var k=el.getAttribute("data-i"); if(d[k]!=null) el.innerHTML=d[k]; });
+    document.documentElement.lang=lang;
+    qa(".lang button").forEach(function(b){ b.classList.toggle("on", b.getAttribute("data-l")===lang); });
+  }
+  try{ var ul=new URLSearchParams(location.search).get("lang"); if(ul&&I18N[ul]) lang=ul; }catch(e){}
+  qa(".lang button").forEach(function(b){ b.onclick=function(){ lang=b.getAttribute("data-l"); applyLang(); }; });
+  applyLang();
+
+  var video=q("#v"), cv=q("#c"), ctx=cv.getContext("2d"), veil=q("#veil"), startBtn=q("#startBtn"), loadMsg=q("#loadMsg");
+  var hud=q("#hud"), badge=q("#badge"), wy=q("#wy"), game=q("#game"), ball=q("#ball");
+  var detector=null, running=false;
+  var ADJ=[["left_shoulder","right_shoulder"],["left_shoulder","left_elbow"],["left_elbow","left_wrist"],
+    ["right_shoulder","right_elbow"],["right_elbow","right_wrist"],["left_shoulder","left_hip"],
+    ["right_shoulder","right_hip"],["left_hip","right_hip"],["left_hip","left_knee"],["left_knee","left_ankle"],
+    ["right_hip","right_knee"],["right_knee","right_ankle"]];
+  function kp(pose,name){ return pose.keypoints.find(function(k){return k.name===name;}); }
+
+  async function start(){
+    loadMsg.style.display="block"; startBtn.style.display="none";
+    try{
+      var stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user"},audio:false});
+      video.srcObject=stream;
+      await new Promise(function(res){ video.onloadedmetadata=function(){ video.play(); res(); }; });
+    }catch(e){ veil.innerHTML='<div style="color:#c0392b">'+I18N[lang].nocam+'</div>'; return; }
+    cv.width=video.videoWidth||640; cv.height=video.videoHeight||480;
+    detector=await poseDetection.createDetector(poseDetection.SupportedModels.MoveNet,
+      {modelType:poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING});
+    veil.style.display="none"; hud.style.display="flex"; game.style.display="block";
+    running=true; loop();
+  }
+  startBtn.onclick=start;
+
+  async function loop(){
+    if(!running) return;
+    var poses=await detector.estimatePoses(video,{flipHorizontal:false});
+    ctx.clearRect(0,0,cv.width,cv.height);
+    var state=I18N[lang].idle;
+    if(poses&&poses[0]){
+      var p=poses[0];
+      // 画骨架
+      ctx.strokeStyle="#49C7E6"; ctx.lineWidth=3; ctx.fillStyle="#FF5233";
+      ADJ.forEach(function(pair){
+        var a=kp(p,pair[0]), b=kp(p,pair[1]);
+        if(a&&b&&a.score>0.3&&b.score>0.3){ ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke(); }
+      });
+      p.keypoints.forEach(function(k){ if(k.score>0.3){ ctx.beginPath(); ctx.arc(k.x,k.y,4,0,6.28); ctx.fill(); } });
+      // 规则：AI 给坐标，我们写 if
+      var rw=kp(p,"right_wrist"), rs=kp(p,"right_shoulder"), lw=kp(p,"left_wrist"), ls=kp(p,"left_shoulder");
+      var jumping=false, armsOpen=false;
+      if(rw&&rs&&rw.score>0.3&&rs.score>0.3){ wy.textContent=Math.round(rw.y); if(rw.y<rs.y) jumping=true; }
+      if(rw&&lw&&ls&&rs&&rw.score>0.3&&lw.score>0.3){
+        var shoulderW=Math.abs(rs.x-ls.x)||1; var wristSpan=Math.abs(rw.x-lw.x);
+        if(wristSpan>shoulderW*1.9) armsOpen=true;
+      }
+      if(jumping){ state=I18N[lang].jump; ball.style.bottom="60px"; }
+      else { ball.style.bottom="6px"; if(armsOpen) state=I18N[lang].open; }
+    }else{ wy.textContent="–"; }
+    badge.textContent=state;
+    await tf.nextFrame(); requestAnimationFrame(loop);
+  }
+})();
+</script>
+</body>
+</html>
