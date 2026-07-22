@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en" data-lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>iDoris admin · 上余额</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%2309090C'/%3E%3Ccircle cx='16' cy='16' r='6' fill='%23FF3B30'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="/assets/style.css">
+<style>
+  .box{max-width:520px;margin:60px auto;border:1px solid var(--line);background:var(--ink-2);border-radius:14px;padding:28px}
+  .box h1{font-family:var(--display),var(--han);font-weight:500;font-size:24px;margin:0 0 4px}
+  .box .sub{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:18px}
+  label{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--paper-dim);display:block;margin:14px 0 4px}
+  input{width:100%;background:var(--ink);border:1px solid var(--line);border-radius:8px;color:var(--paper);font-family:var(--mono);font-size:15px;padding:12px;box-sizing:border-box}
+  .quick{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+  .quick button{font-family:var(--mono);font-size:11px;padding:6px 11px;border:1px solid var(--line);background:var(--ink);color:var(--paper-dim);border-radius:6px;cursor:pointer}
+  .quick button:hover{border-color:var(--red);color:var(--red)}
+  button.act{width:100%;margin-top:18px;font-family:var(--mono);font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;padding:13px;border:1px solid var(--red);background:var(--red);color:var(--ink);font-weight:600;border-radius:2px;cursor:pointer}
+  button.act:disabled{opacity:.5;cursor:progress}
+  .msg{margin-top:14px;font-size:14px;min-height:1.2em}
+  .msg.ok{color:var(--violet)} .msg.no{color:var(--red)}
+  .hint{font-size:12px;color:var(--muted);margin-top:16px;line-height:1.7}
+</style>
+</head>
+<body>
+<div class="box">
+  <h1>上余额 · Credit a wallet</h1>
+  <div class="sub">iDoris admin · 线下收款后用</div>
+
+  <label>管理员密钥 Admin secret</label>
+  <input id="secret" type="password" placeholder="ADMIN_SECRET" autocomplete="off">
+
+  <label>用户钱包码 Wallet code</label>
+  <input id="wallet" placeholder="例如 3c4f840b5c01…（用户在 /buy 复制给你）" autocomplete="off">
+
+  <label>充多少 token</label>
+  <input id="tokens" type="number" min="1" placeholder="tokens" inputmode="numeric">
+  <div class="quick" id="quick"></div>
+
+  <button class="act" id="go">给这个钱包上余额</button>
+  <div class="msg" id="msg"></div>
+
+  <div class="hint">
+    参考汇率：<b>1 USD ≈ 30,000 token</b>（¥ / ฿ 折成美元再乘）。<br>
+    余额累加、不覆盖。密钥只存在你本机会话，请求走 <code>/api/admin/grant</code> 服务端校验。<br>
+    先设置密钥：<code>echo "你的密钥" | npx wrangler pages secret put ADMIN_SECRET --project-name=idoris-website</code>
+  </div>
+</div>
+<script>
+(function(){
+  var $=function(id){return document.getElementById(id);};
+  try{ var s=sessionStorage.getItem('idoris_admin_secret'); if(s) $('secret').value=s; }catch(e){}
+  // 快捷金额（按 30000 token/USD）
+  [[5,'$5'],[10,'$10'],[20,'$20'],[50,'$50'],[100,'$100']].forEach(function(p){
+    var b=document.createElement('button'); b.textContent=p[1]+' → '+(p[0]*30000).toLocaleString();
+    b.onclick=function(){ $('tokens').value=p[0]*30000; }; $('quick').appendChild(b);
+  });
+  $('go').onclick=async function(){
+    var secret=$('secret').value.trim(), wallet=$('wallet').value.trim(), tokens=parseInt($('tokens').value,10);
+    var msg=$('msg');
+    if(!secret||!/^[a-f0-9]{12,40}$/.test(wallet)||!(tokens>0)){ msg.className='msg no'; msg.textContent='密钥 / 钱包码(12-40位hex) / token 数都要填对'; return; }
+    try{ sessionStorage.setItem('idoris_admin_secret',secret); }catch(e){}
+    var btn=this,t=btn.textContent; btn.disabled=true; btn.textContent='…';
+    try{
+      var r=await fetch('/api/admin/grant',{method:'POST',headers:{'content-type':'application/json','x-admin-secret':secret},body:JSON.stringify({wallet:wallet,tokens:tokens})});
+      var d=await r.json();
+      if(r.ok&&d.ok){ msg.className='msg ok'; msg.textContent='✅ 已上余额：钱包 '+wallet.slice(0,10)+'… 现有 '+d.remaining.toLocaleString()+' token（本次 +'+tokens.toLocaleString()+'）'; }
+      else if(r.status===401){ msg.className='msg no'; msg.textContent='密钥错误'; }
+      else if(r.status===503){ msg.className='msg no'; msg.textContent='ADMIN_SECRET 未配置（见提示里的命令）'; }
+      else { msg.className='msg no'; msg.textContent=d.message||d.error||'失败'; }
+    }catch(e){ msg.className='msg no'; msg.textContent='网络错误'; }
+    finally{ btn.disabled=false; btn.textContent=t; }
+  };
+})();
+</script>
+</body>
+</html>

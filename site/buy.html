@@ -3,34 +3,33 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title data-zh="充值 · AI 体验卡钱包 — iDoris" data-th="เติมเงิน · กระเป๋าบัตรทดลอง AI — iDoris">Top up · AI card wallet — iDoris</title>
-<meta name="description" content="Top up your token wallet. Every card you play draws from it. Pay with Stripe/Lemon Squeezy or community points." data-zh="给你的 token 钱包充值——玩每张卡都从钱包扣 token。支持卡支付或社区积分。" data-th="เติมเงินเข้ากระเป๋าโทเคน เล่นการ์ดแต่ละใบหักจากกระเป๋า จ่ายด้วยบัตรหรือแต้มชุมชน">
+<title data-zh="我的钱包 · 充值 — iDoris" data-th="กระเป๋าของฉัน · เติมเงิน — iDoris">My wallet · top up — iDoris</title>
+<meta name="description" content="Your AI card token wallet. Top up offline (we credit your balance) or with community points." data-zh="你的 AI 体验卡 token 钱包。线下支付后我们给你上余额，或用社区积分充值。" data-th="กระเป๋าโทเคนบัตร AI ของคุณ เติมแบบออฟไลน์ (เราเติมยอดให้) หรือด้วยแต้มชุมชน">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%2309090C'/%3E%3Ccircle cx='16' cy='16' r='6' fill='%23FF3B30'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="/assets/style.css">
 <style>
-  .status{display:none;margin:0 0 26px;padding:16px 22px;border-radius:10px;border:1px solid var(--line);font-size:14px}
-  .status.show{display:block}
-  .status.ok{border-left:3px solid var(--violet);background:rgba(157,140,255,.08);color:var(--paper)}
-  .status.no{border-left:3px solid var(--red);background:var(--red-dim);color:var(--paper)}
-  .packs{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:8px}
-  .pack{border:1px solid var(--line);background:var(--ink-2);border-radius:14px;padding:22px 18px;text-align:center;cursor:pointer;transition:border-color .2s,transform .2s}
-  .pack:hover{border-color:rgba(255,59,48,.5);transform:translateY(-2px)}
-  .pack.feature{border-color:rgba(255,59,48,.5);background:linear-gradient(180deg,rgba(255,59,48,.06),var(--ink-2))}
-  .pack .amt{font-family:var(--display),var(--han);font-weight:500;font-size:32px;color:var(--paper)}
-  .pack .tok{font-family:var(--mono);font-size:11px;color:var(--cyan,#49C7E6);margin-top:4px;letter-spacing:.04em}
-  .pack .tag{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-top:8px}
-  .custom{margin-top:16px;border:1px solid var(--line);background:var(--ink-2);border-radius:14px;padding:20px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-  .custom label{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
-  .custom .inp{display:flex;align-items:center;border:1px solid var(--line);border-radius:8px;background:var(--ink);padding:0 12px}
-  .custom .inp span{color:var(--muted);font-family:var(--mono)}
-  .custom input{background:transparent;border:0;color:var(--paper);font-family:var(--mono);font-size:18px;width:90px;padding:11px 6px;outline:none}
-  .custom .ctok{font-family:var(--mono);font-size:12px;color:var(--cyan,#49C7E6)}
-  .custom button{margin-left:auto;font-family:var(--mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;padding:12px 20px;border:1px solid var(--red);background:var(--red);color:var(--ink);font-weight:600;border-radius:2px;cursor:pointer}
-  .custom button:hover:not(:disabled){background:transparent;color:var(--red)}
-  .custom button:disabled{opacity:.5;cursor:progress}
-  .paynote{margin-top:26px;font-size:13px;color:var(--muted);max-width:72ch}
-  .paynote b{color:var(--paper-dim)}
-  @media(max-width:760px){.packs{grid-template-columns:1fr 1fr}}
+  .wallet{border:1px solid var(--line);background:linear-gradient(180deg,rgba(157,140,255,.06),var(--ink-2));border-radius:16px;padding:26px 28px;margin-top:8px}
+  .wallet .lab{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--violet)}
+  .wallet .code{font-family:var(--mono);font-size:20px;color:var(--paper);letter-spacing:.06em;margin:8px 0;word-break:break-all}
+  .wallet .bal{font-family:var(--display),var(--han);font-weight:500;font-size:34px;color:var(--paper)}
+  .wallet .bal small{font-size:13px;color:var(--paper-dim);font-family:var(--mono)}
+  .wallet .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-top:14px}
+  .wallet button{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:9px 14px;border:1px solid var(--line);background:var(--ink);color:var(--paper);border-radius:6px;cursor:pointer}
+  .wallet button:hover{border-color:var(--red);color:var(--red)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:22px}
+  .opt{border:1px solid var(--line);background:var(--ink-2);border-radius:14px;padding:24px}
+  .opt h3{font-family:var(--display),var(--han);font-weight:500;font-size:20px;margin:0 0 6px}
+  .opt .sub{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+  .opt p{font-size:13.5px;color:var(--paper-dim);line-height:1.7}
+  .opt a.link2{color:var(--paper);border-bottom:1px solid var(--line)}
+  .opt a.link2:hover{color:var(--red);border-color:var(--red)}
+  .opt input{width:100%;background:var(--ink);border:1px solid var(--line);border-radius:8px;color:var(--paper);font-family:var(--mono);font-size:14px;padding:11px 12px;margin:6px 0;box-sizing:border-box}
+  .opt button.act{width:100%;font-family:var(--mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;padding:12px;border:1px solid var(--red);background:var(--red);color:var(--ink);font-weight:600;border-radius:2px;cursor:pointer;margin-top:6px}
+  .opt button.act:hover:not(:disabled){background:transparent;color:var(--red)}
+  .opt button.act:disabled{opacity:.5;cursor:progress}
+  .msg{font-size:12.5px;margin-top:8px;min-height:1em}
+  .msg.ok{color:var(--violet)} .msg.no{color:var(--red)}
+  @media(max-width:760px){.grid2{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -40,7 +39,7 @@
     <a class="brand" href="/"><span class="dot"></span>iDORIS / AURAAI</a>
     <div class="nav-scroll">
       <a class="link" href="/cards" data-zh="卡片墙" data-th="บัตรทั้งหมด">Cards</a>
-      <a class="link" href="/buy" data-zh="充值" data-th="เติมเงิน" style="color:var(--red)">Top up</a>
+      <a class="link" href="/buy" data-zh="我的钱包" data-th="กระเป๋า" style="color:var(--red)">Wallet</a>
       <a class="link" href="/friends" data-zh="我们的 IP" data-th="ตัวละคร">Doris &amp; Cherry</a>
       <a class="link" href="https://github.com/AuraAIHQ">GitHub ↗</a>
     </div>
@@ -56,30 +55,41 @@
 <header class="hero">
   <div class="wrap">
     <div class="hero-copy" style="max-width:820px">
-      <div class="kicker rise d1" data-zh="AI 体验卡钱包 · 充值" data-th="กระเป๋าบัตรทดลอง AI · เติมเงิน">AI card wallet · top up</div>
-      <h1 class="rise d2" data-zh="充一次值，<span class=&quot;glow&quot;>随便玩。</span>" data-th="เติมครั้งเดียว <span class=&quot;glow&quot;>เล่นได้เรื่อย ๆ</span>">Top up once, <span class="glow">play freely.</span></h1>
-      <p class="lede rise d3" data-zh="给你的 token 钱包充值，玩每张体验卡都从钱包里扣 token（轻的实验几千、出图/视频几万）。充得越多越划算，余额永久有效。" data-th="เติมเงินเข้ากระเป๋าโทเคน เล่นการ์ดแต่ละใบหักจากกระเป๋า (การทดลองเบา ๆ ไม่กี่พัน ภาพ/วิดีโอหลักหมื่น) เติมมากยิ่งคุ้ม ยอดคงเหลือไม่หมดอายุ">Top up your token wallet; every card you play draws tokens from it (light experiments cost a few thousand, image/video tens of thousands). The more you add, the better the value — your balance never expires.</p>
+      <div class="kicker rise d1" data-zh="AI 体验卡 · 我的钱包" data-th="บัตรทดลอง AI · กระเป๋าของฉัน">AI cards · my wallet</div>
+      <h1 class="rise d2" data-zh="你的 token <span class=&quot;glow&quot;>钱包。</span>" data-th="กระเป๋า token <span class=&quot;glow&quot;>ของคุณ</span>">Your token <span class="glow">wallet.</span></h1>
+      <p class="lede rise d3" data-zh="玩每张体验卡都从这个钱包扣 token。<b>线下支付后我们直接给你上余额</b>，或用<b>社区积分</b>充值。钱包码存在你本机，余额永久有效。" data-th="เล่นการ์ดแต่ละใบหักจากกระเป๋านี้ จ่ายออฟไลน์แล้วเราเติมยอดให้ หรือใช้แต้มชุมชน โค้ดกระเป๋าเก็บในเครื่องคุณ ยอดไม่หมดอายุ">Every card you play draws tokens from this wallet. <b>Pay us offline and we credit your balance directly</b>, or top up with <b>community points</b>. Your wallet code lives on this device; the balance never expires.</p>
 
-      <div id="status" class="status rise d3" role="status"></div>
-
-      <div class="packs rise d4">
-        <div class="pack" data-usd="5"><div class="amt">$5</div><div class="tok">150,000 tokens</div><div class="tag" data-zh="≈ ¥36 / ฿180" data-th="≈ ¥36 / ฿180">≈ ¥36 / ฿180</div></div>
-        <div class="pack feature" data-usd="20"><div class="amt">$20</div><div class="tok">600,000 tokens</div><div class="tag" data-zh="最受欢迎" data-th="ยอดนิยม">popular</div></div>
-        <div class="pack" data-usd="50"><div class="amt">$50</div><div class="tok">1,500,000 tokens</div><div class="tag" data-zh="班级/家庭" data-th="ห้องเรียน/ครอบครัว">class</div></div>
-        <div class="pack" data-usd="100"><div class="amt">$100</div><div class="tok">3,000,000 tokens</div><div class="tag" data-zh="机构" data-th="องค์กร">org</div></div>
+      <div class="wallet rise d3">
+        <div class="lab" data-zh="你的钱包码" data-th="โค้ดกระเป๋าของคุณ">Your wallet code</div>
+        <div class="code" id="wcode">…</div>
+        <div class="bal" id="wbal">0 <small>tokens</small></div>
+        <div class="row">
+          <button id="copy" data-zh="复制钱包码" data-th="คัดลอกโค้ด">Copy code</button>
+          <button id="refresh" data-zh="刷新余额" data-th="รีเฟรชยอด">Refresh balance</button>
+        </div>
       </div>
 
-      <div class="custom rise d4">
-        <label data-zh="自定义金额" data-th="กำหนดจำนวนเอง">Custom</label>
-        <div class="inp"><span>$</span><input id="camt" type="number" min="1" max="999" step="1" value="10" inputmode="decimal"></div>
-        <span class="ctok" id="ctok">= 300,000 tokens</span>
-        <button id="cbuy" data-zh="充值" data-th="เติมเงิน">Top up</button>
+      <div class="grid2 rise d4">
+        <div class="opt">
+          <h3 data-zh="① 线下充值" data-th="① เติมออฟไลน์">① Offline top-up</h3>
+          <div class="sub" data-zh="Meetup · PromptPay · 转账" data-th="Meetup · PromptPay · โอน">Meetup · PromptPay · transfer</div>
+          <p data-zh="在周日 meetup 现场、或用 PromptPay / 转账支付。把上面的<b>钱包码发给我们</b>，我们收到后<b>直接给你上余额</b>，刷新即可看到。" data-th="จ่ายที่ meetup วันอาทิตย์ หรือด้วย PromptPay / โอนเงิน ส่งโค้ดกระเป๋าด้านบนให้เรา แล้วเราจะเติมยอดให้ทันที">Pay at the Sunday meetup, or via PromptPay / bank transfer. <b>Send us your wallet code above</b> and we'll <b>credit your balance directly</b> — just refresh.</p>
+          <p style="margin-top:10px">📩 <a class="link2" href="mailto:jhfnetboy@gmail.com?subject=iDoris%20wallet%20top-up">jhfnetboy@gmail.com</a> · <a class="link2" href="https://app.sola.day/event/detail/19717" data-zh="周日 meetup" data-th="meetup วันอาทิตย์">Sunday meetup</a></p>
+        </div>
+        <div class="opt">
+          <h3 data-zh="② 社区积分充值" data-th="② เติมด้วยแต้มชุมชน">② Community points</h3>
+          <div class="sub" data-zh="积分 → token" data-th="แต้ม → token">points → tokens</div>
+          <p data-zh="有社区积分兑换码？填进来把积分充成 token（1 积分 = 300 token）。" data-th="มีโค้ดแต้มชุมชน? กรอกเพื่อแปลงแต้มเป็น token (1 แต้ม = 300 token)">Got a community-points code? Redeem points into tokens here (1 point = 300 tokens).</p>
+          <input id="pcode" placeholder="points code" autocomplete="off">
+          <input id="pnum" type="number" min="1" placeholder="points" inputmode="numeric">
+          <button class="act" id="predeem" data-zh="兑换到钱包" data-th="แลกเข้ากระเป๋า">Redeem to wallet</button>
+          <div class="msg" id="pmsg"></div>
+        </div>
       </div>
 
-      <p class="paynote rise d4" data-zh="支付由 <b>Lemon Squeezy / Stripe</b> 安全处理（含全球税务）。<b>社区积分</b>也可充值（在另一仓库发放）。清迈本地 <b>PromptPay</b> 即将支持。企业采购邮件 jhfnetboy@gmail.com。" data-th="ชำระเงินอย่างปลอดภัยผ่าน <b>Lemon Squeezy / Stripe</b> · เติมด้วย <b>แต้มชุมชน</b> ได้ · เร็ว ๆ นี้รองรับ <b>PromptPay</b>">Payments are handled securely by <b>Lemon Squeezy / Stripe</b> (global tax included). You can also top up with <b>community points</b>. Local <b>PromptPay</b> support is coming. Bulk orders: jhfnetboy@gmail.com.</p>
+      <p class="rise d4" style="margin-top:22px;font-size:13px;color:var(--muted);max-width:72ch" data-zh="说明：暂不做在线卡支付。清迈本地走 meetup / PromptPay 收款，我们手动上余额；线上走社区积分。企业/机构采购邮件联系。" data-th="หมายเหตุ: ยังไม่มีการชำระบัตรออนไลน์ ในเชียงใหม่ใช้ meetup / PromptPay แล้วเราเติมยอดให้ ออนไลน์ใช้แต้มชุมชน">Note: no online card payment for now. Locally in Chiang Mai we take meetup / PromptPay and credit you manually; online we use community points. Bulk orders by email.</p>
     </div>
   </div>
-</header>
 </main>
 
 <footer>
@@ -99,66 +109,38 @@
 <script src="/assets/i18n-v2.js"></script>
 <script>
   (function () {
-    var TOKENS_PER_USD = 30000;
-    var box = document.getElementById('status');
-    var params = new URLSearchParams(location.search);
-    var st = params.get('status');
     function lang(){ return document.documentElement.getAttribute('data-lang') || 'en'; }
-    function fmt(n){ return n.toLocaleString(); }
-    // 钱包码：本地持久化，充值累加到同一个钱包
+    function fmt(n){ return (n||0).toLocaleString(); }
     function wallet(){
-      var w = null;
-      try { w = localStorage.getItem('idoris_wallet'); } catch(e){}
-      if (!/^[a-f0-9]{12,40}$/.test(w||'')) {
-        w = (crypto.randomUUID ? crypto.randomUUID().replace(/-/g,'') : (Date.now().toString(16)+Math.floor(Math.random()*1e12).toString(16))).slice(0,24);
-        try { localStorage.setItem('idoris_wallet', w); } catch(e){}
-      }
+      var w=null; try{ w=localStorage.getItem('idoris_wallet'); }catch(e){}
+      if(!/^[a-f0-9]{12,40}$/.test(w||'')){ w=(crypto.randomUUID?crypto.randomUUID().replace(/-/g,''):(Date.now().toString(16)+Math.floor(Math.random()*1e12).toString(16))).slice(0,24); try{localStorage.setItem('idoris_wallet',w);}catch(e){} }
       return w;
     }
-
-    if (st === 'success' || st === 'cancel') {
-      var m = st==='success'
-        ? {en:'✅ Payment received — crediting your wallet…',zh:'✅ 支付成功，正在给钱包充值…',th:'✅ ชำระเงินสำเร็จ กำลังเติมกระเป๋า…'}
-        : {en:'Payment canceled — no charge. Try again anytime.',zh:'支付已取消，未扣款。随时可以再试。',th:'ยกเลิกการชำระเงิน ไม่มีการเรียกเก็บ ลองใหม่ได้'};
-      box.textContent = m[lang()]||m.en; box.className='status show '+(st==='success'?'ok':'no');
+    var W=wallet();
+    document.getElementById('wcode').textContent=W;
+    function loadBal(){
+      fetch('/api/balance?code='+encodeURIComponent(W)).then(function(r){return r.json();}).then(function(d){
+        document.getElementById('wbal').innerHTML=fmt(d.remaining)+' <small>tokens</small>';
+      }).catch(function(){});
     }
-    if (st === 'success') {
-      var w = wallet(), tries=0, before = parseInt(sessionStorage.getItem('idoris_bal_before')||'0',10);
-      (function poll(){ tries++;
-        fetch('/api/balance?code='+encodeURIComponent(w)).then(function(r){return r.json();}).then(function(d){
-          if (d && d.remaining > before){
-            var t = lang()==='zh' ? '✅ 已到账：钱包余额 '+fmt(d.remaining)+' tokens（钱包码 '+w+'，已存在本机）'
-                  : lang()==='th' ? '✅ เติมแล้ว: ยอดคงเหลือ '+fmt(d.remaining)+' tokens'
-                  : '✅ Credited: wallet balance '+fmt(d.remaining)+' tokens (saved on this device)';
-            box.textContent = t;
-          } else if (tries<8) setTimeout(poll,2000);
-          else { var l=lang(); box.textContent = l==='zh'?'支付已收到，正在入账（稍等或刷新查看余额）。':'Payment received; crediting shortly — refresh to see your balance.'; }
-        }).catch(function(){ if(tries<8) setTimeout(poll,2000); });
-      })();
-    }
+    loadBal();
+    document.getElementById('refresh').onclick=loadBal;
+    document.getElementById('copy').onclick=function(){ (navigator.clipboard&&navigator.clipboard.writeText(W)); var b=this,t=b.textContent; b.textContent=(lang()==='zh'?'已复制':'Copied'); setTimeout(function(){b.textContent=t;},1200); };
 
-    function fail(t){ box.textContent=t; box.className='status show no'; box.scrollIntoView({behavior:'smooth',block:'center'}); }
-    async function checkout(usd, btn){
-      var orig = btn ? btn.textContent : null;
-      if(btn){ btn.disabled=true; btn.textContent='…'; }
+    var pm=document.getElementById('pmsg');
+    document.getElementById('predeem').onclick=async function(){
+      var code=document.getElementById('pcode').value.trim(), num=parseInt(document.getElementById('pnum').value,10);
+      if(!code||!(num>0)){ pm.className='msg no'; pm.textContent=lang()==='zh'?'请填兑换码和积分数':'Enter code and points'; return; }
+      var btn=this,t=btn.textContent; btn.disabled=true; btn.textContent='…';
       try{
-        try{ var b=await (await fetch('/api/balance?code='+encodeURIComponent(wallet()))).json(); sessionStorage.setItem('idoris_bal_before', String(b.remaining||0)); }catch(e){}
-        var r = await fetch('/api/checkout',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({amountUsd:usd, wallet:wallet()})});
-        var d = await r.json();
-        if(r.ok && d.url){ location.href=d.url; return; }
-        if(r.status===503){ var l=lang(); fail(l==='zh'?'支付即将开通（后端未配密钥）。请稍后再来。':l==='th'?'ระบบชำระเงินกำลังเปิด โปรดลองใหม่ภายหลัง':'Payments are being switched on. Please check back soon.'); }
-        else fail((d&&d.message)||'Something went wrong. Please try again.');
-      }catch(e){ fail('Network error — please try again.'); }
-      finally{ if(btn){ btn.disabled=false; btn.textContent=orig; } }
-    }
-
-    document.querySelectorAll('.pack[data-usd]').forEach(function(p){
-      p.addEventListener('click', function(){ checkout(parseFloat(p.getAttribute('data-usd')), null); });
-    });
-    var camt=document.getElementById('camt'), ctok=document.getElementById('ctok');
-    function syncCustom(){ var v=Math.max(1,Math.min(999,parseFloat(camt.value)||0)); ctok.textContent='= '+fmt(Math.round(v*TOKENS_PER_USD))+' tokens'; }
-    camt.addEventListener('input', syncCustom); syncCustom();
-    document.getElementById('cbuy').addEventListener('click', function(){ var v=parseFloat(camt.value); if(!(v>=1&&v<=999)){ fail(lang()==='zh'?'金额需在 $1–$999':'Amount must be $1–$999'); return;} checkout(v, this); });
+        var r=await fetch('/api/points/redeem',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({pointsCode:code,points:num,wallet:W})});
+        var d=await r.json();
+        if(r.ok&&d.ok){ pm.className='msg ok'; pm.textContent=(lang()==='zh'?'✅ 已充 '+fmt(num*300)+' token，余额 '+fmt(d.remaining):'✅ +'+fmt(num*300)+' tokens, balance '+fmt(d.remaining)); loadBal(); }
+        else if(d.error==='insufficient_points'){ pm.className='msg no'; pm.textContent=lang()==='zh'?'积分不足（剩 '+fmt(d.balance)+'）':'Not enough points (left '+fmt(d.balance)+')'; }
+        else { pm.className='msg no'; pm.textContent=(d.message||d.error||'failed'); }
+      }catch(e){ pm.className='msg no'; pm.textContent='network error'; }
+      finally{ btn.disabled=false; btn.textContent=t; }
+    };
   })();
 </script>
 </body>
