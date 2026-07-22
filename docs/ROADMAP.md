@@ -1,6 +1,6 @@
 # AI 学习卡 · 产品规划（Roadmap）
 
-> AuraAI / iDoris · 教育产品提案 · 清迈优先 · v0.1
+> iDoris.ai / iDoris · 教育产品提案 · 清迈优先 · v0.1
 > 本文档是产品规划稿的完整存档（原为规划页 artifact）。案例链接均实测可达，star / 可用性随时间变化，上卡前需复核。
 
 ---
@@ -95,7 +95,7 @@ AI 不只是替代岗位的生产力，它也可以是**辅助人类、提升生
 
 内容、代码、原理、复现步骤全部沉淀在 GitHub，天然开源、可被社区贡献；对外由 Cloudflare 提供好看的界面和 playground。
 
-- **🗂 内容层 · GitHub**（`AuraAIHQ/ai-atlas`）：一张卡 = 一个子目录 `/cards/<slug>/`，内含 `card.json`（标题/难度/原理/流程图/复现/playground 配置）、封面图、专属 Doris 形象。新卡由社区 PR 贡献，审核上架。
+- **🗂 内容层 · GitHub**（`iDoris-ai/ai-atlas`）：一张卡 = 一个子目录 `/cards/<slug>/`，内含 `card.json`（标题/难度/原理/流程图/复现/playground 配置）、封面图、专属 Doris 形象。新卡由社区 PR 贡献，审核上架。
 - **🌩 交付层 · Cloudflare**（`idoris.ai/cards`、`/card?slug=`）：Pages 渲染卡片墙与详情页；playground 通过 Worker 调用**我们代理/自建的模型**。买卡 = 充值一份 token/积分额度 + 领取 Doris 形象/NFT。
 
 > 🔗 上游依赖：34 模型 ×2 卖价表（已产出）；计价集中在 `_worker.js` 的 `PRICING` 块（底线 2 积分、×2 倍率，按实际消耗折算）。

@@ -1,4 +1,4 @@
-# AuraAI — 组织大脑 iDoris
+# iDoris.ai — 组织大脑 iDoris
 
 > 无数科幻片里都有那样一个存在：聪明、可靠、无所不能的智能大脑，帮人搞定一切。
 > 我们想把它造出来——不是给一家巨头，而是给**每一个个体、每一个组织、每一座城市**。
@@ -12,7 +12,7 @@
 
 ## 关于名字
 
-AuraAI 是 AI 给的建议——一个烂大街的名字。等我们去注册域名，发现早被人占了。
+iDoris.ai 是 AI 给的建议——一个烂大街的名字。等我们去注册域名，发现早被人占了。
 
 于是主域名成了 **iDoris.ai**。iDoris 同时是我们的组织名和核心产品名：**组织大脑**。这不是妥协，反而更准确——我们做的事，本来就该以那个大脑命名。
 
@@ -37,7 +37,7 @@ AuraAI 是 AI 给的建议——一个烂大街的名字。等我们去注册域
 雇不起 FDE 的组织，能不能自己 FDE？我们觉得可以。
 
 - 协议：Apache 2.0
-- 仓库：[AuraAIHQ/Self-FDE-WorkBench](https://github.com/AuraAIHQ/Self-FDE-WorkBench)
+- 仓库：[iDoris-ai/Self-FDE-WorkBench](https://github.com/iDoris-ai/Self-FDE-WorkBench)
 - 站点：[workbench.idoris.ai](https://workbench.idoris.ai)
 
 ### 🧠 iDoris — 最贴身的那个大脑
@@ -116,4 +116,4 @@ site/
 
 ---
 
-[AuraAI](https://github.com/AuraAIHQ) · [Self-FDE-WorkBench](https://github.com/AuraAIHQ/Self-FDE-WorkBench) · [Apache 2.0](./LICENSE)
+[iDoris.ai](https://github.com/iDoris-ai) · [Self-FDE-WorkBench](https://github.com/iDoris-ai/Self-FDE-WorkBench) · [Apache 2.0](./LICENSE)
