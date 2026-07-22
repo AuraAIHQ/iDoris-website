@@ -27,6 +27,7 @@
   .cbody ul{padding-left:0;list-style:none;margin:0}
   .cbody li{color:var(--paper-dim);font-size:14.5px;padding:6px 0 6px 22px;position:relative;line-height:1.7}
   .cbody li::before{content:"─";position:absolute;left:0;color:var(--red);opacity:.55}
+  .cbody pre.diagram{font-family:var(--mono);font-size:12.5px;line-height:1.55;color:var(--paper-dim);background:var(--ink-2);border:1px solid var(--line);border-left:2px solid var(--violet);border-radius:10px;padding:16px 18px;overflow-x:auto;white-space:pre;margin:10px 0 4px;max-width:100%}
   .cside{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#F4F1EC;position:sticky;top:80px}
   .cside img{display:block;width:100%;height:auto}
   .cside .foot{padding:14px 16px;background:var(--ink-2)}
@@ -96,6 +97,7 @@
   var L = {
     play:   {zh:'去玩 · Playground', en:'Play · Playground', th:'เล่น · Playground'},
     principle:{zh:'原理', en:'How it works', th:'หลักการ'},
+    flow:   {zh:'架构流程图', en:'How it flows', th:'แผนผังการทำงาน'},
     learn:  {zh:'你能学到什么', en:"What you'll learn", th:'สิ่งที่จะได้เรียนรู้'},
     reproduce:{zh:'怎么复现（自己做）', en:'Reproduce it yourself', th:'ทำเองอย่างไร'},
     exp:    {zh:'约 N 个实验', en:'~N experiments', th:'~N การทดลอง'},
@@ -143,7 +145,8 @@
   function renderBody(){
     if(!card) return;
     var b = card.body||{}; var out='';
-    if (b.principle){ out += '<h2 class="display">'+esc(label('principle'))+'</h2><p>'+esc(pick(b.principle)).replace(/\n/g,'<br>')+'</p>'; }
+    if (b.principle){ var paras=pick(b.principle).split(/\n\n+/).map(function(x){return '<p>'+esc(x).replace(/\n/g,'<br>')+'</p>';}).join(''); out += '<h2 class="display">'+esc(label('principle'))+'</h2>'+paras; }
+    if (b.diagram){ out += '<h2 class="display">'+esc(label('flow'))+'</h2><pre class="diagram">'+esc(pick(b.diagram))+'</pre>'; }
     if (b.learn){ var arr=b.learn[lang()]||b.learn.zh||[]; out += '<h2 class="display">'+esc(label('learn'))+'</h2><ul>'+arr.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul>'; }
     if (b.reproduce){ var r=b.reproduce[lang()]||b.reproduce.zh||[]; out += '<h2 class="display">'+esc(label('reproduce'))+'</h2><ul>'+r.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul>'; }
     if(!out){ out = '<p style="color:var(--muted)">正文整理中… / Content in progress…</p>'; }
